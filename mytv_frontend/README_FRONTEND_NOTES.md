@@ -42,3 +42,13 @@
   4. `window.tizen` is checked only if available; behavior degrades gracefully on web.
 
 No additional configuration is required for basic navigation.
+
+## Samsung TV (Tizen) Packaging Quickstart
+
+- Build the app: `npm run build`
+- Use the provided `config.xml` at repo root and copy `mytv_frontend/build/*` + `config.xml` into a packaging folder so `index.html` is at the package root.
+- Then run Tizen CLI:
+  - `tizen build-web` (inside the packaging folder)
+  - `tizen package -t wgt -s <your_cert_profile>`
+  - Install on TV via: `sdb connect <TV_IP>:26101` and `sdb install <your>.wgt`
+- Full steps: see `tizen/README_TIZEN.md`.

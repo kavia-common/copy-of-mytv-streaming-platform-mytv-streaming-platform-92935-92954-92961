@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Tizen Web Application configuration for Samsung TV (WGT)
+  Notes:
+  - Build your React app first: npm run build (output: mytv_frontend/build/)
+  - This config points content src to index.html at the root of the packaged WGT.
+  - When packaging, ensure the built app's index.html is at the root of the WGT or adjust content src accordingly.
+-->
+<widget xmlns="http://www.w3.org/ns/widgets"
+        xmlns:tizen="http://tizen.org/ns/widgets"
+        id="com.mytv.app"
+        version="1.0.0"
+        viewmodes="maximized"
+        width="1920"
+        height="1080">
+  <name>MyTV</name>
+  <description>MyTV - Modern streaming UI for Samsung TV (React SPA)</description>
+  <author href="https://example.com" email="support@example.com">MyTV</author>
+
+  <!-- Entry HTML. If you keep CRA build structure, copy build/index.html to package root or set src="build/index.html". -->
+  <content src="index.html" />
+
+  <!-- TV profile/application meta -->
+  <tizen:profile name="tv"/>
+  <tizen:application id="com.mytv.app.Mytv"
+                     package="com.mytv.app"
+                     required_version="4.0"
+                     type="web" />
+
+  <!-- Category for TV apps -->
+  <tizen:category name="tv"/>
+
+  <!-- Icons (provide at least a 512x512). Additional sizes optional -->
+  <icon src="public/icons/tv-icon.png" width="512" height="512"/>
+
+  <!-- Privileges: Internet for fetching data; local storage allowed via web-setting -->
+  <tizen:privilege name="http://tizen.org/privilege/internet"/>
+
+  <!-- Web settings suitable for TV apps -->
+  <tizen:setting
+      screen-orientation="landscape"
+      context-menu="disable"
+      background-support="disable"
+      encryption="disable"
+      install-location="auto"
+      hwkey-event="enable">
+  </tizen:setting>
+
+  <!-- Network access policy for CSP-like allowance (optional, legacy) -->
+  <access origin="*" subdomains="true"/>
+</widget>
