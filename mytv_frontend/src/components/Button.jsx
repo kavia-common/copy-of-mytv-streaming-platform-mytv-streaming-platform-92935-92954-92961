@@ -1,0 +1,24 @@
+import React from "react";
+
+/**
+ * PUBLIC_INTERFACE
+ * Button
+ * A styled button with Ocean Professional accents and accessible label.
+ */
+export default function Button({ children, className = "", variant = "primary", ...props }) {
+  const base =
+    "inline-flex items-center justify-center rounded-md px-4 py-2 text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-60 disabled:cursor-not-allowed";
+  const variants = {
+    primary:
+      "bg-ocean-primary text-white hover:bg-blue-600 focus:ring-blue-400 focus:ring-offset-slate-800",
+    secondary:
+      "bg-ocean-secondary text-slate-900 hover:bg-amber-400 focus:ring-amber-300 focus:ring-offset-slate-800",
+    ghost:
+      "bg-transparent text-gray-200 hover:bg-white/10 focus:ring-white/30 focus:ring-offset-slate-800",
+  };
+  return (
+    <button className={`${base} ${variants[variant]} ${className}`} {...props}>
+      {children}
+    </button>
+  );
+}
