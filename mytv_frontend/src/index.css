@@ -30,3 +30,11 @@ body {
 .rail-item {
   scroll-snap-align: start;
 }
+
+/* Focus-visible helper for TV focus attribute */
+[data-focused="true"] {
+  outline: none;
+  /* fallback ring if component didn't add dynamic class */
+  box-shadow: 0 0 0 2px rgba(245, 158, 11, 1);
+  border-radius: 0.375rem; /* rounded-md like */
+}

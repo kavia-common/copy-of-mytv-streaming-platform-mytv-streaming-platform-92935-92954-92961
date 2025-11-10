@@ -1,16 +1,21 @@
-import React, { useRef } from "react";
+import React, { useMemo, useRef } from "react";
 import MovieCard from "./MovieCard";
 
 /**
  * PUBLIC_INTERFACE
  * Rail
  * Horizontally scrollable list with prev/next controls on desktop
+ * Adds TV-remote focus structure: each item has left/right neighbors,
+ * and up/down neighbors are provided by parent page via baseNeighborUp/baseNeighborDown props.
  */
-export default function Rail({ title, items = [] }) {
+export default function Rail({ title, items = [], railIndex = 0, baseId = "rail", baseNeighborUp, baseNeighborDown }) {
   const ref = useRef(null);
   const scrollBy = (delta) => {
     ref.current?.scrollBy({ left: delta, behavior: "smooth" });
   };
+
+  const ids = useMemo(() => items.map((m, idx) => `${baseId}-${railIndex}-item-${idx}`), [items, railIndex, baseId]);
+
   return (
     <section className="relative my-6">
       <div className="mx-6 flex items-center justify-between">
@@ -36,9 +41,17 @@ export default function Rail({ title, items = [] }) {
         ref={ref}
         className="rail-scroll mt-3 flex gap-3 overflow-x-auto px-6 pb-2"
       >
-        {items.map((m) => (
-          <MovieCard key={m.id} movie={m} />
-        ))}
+        {items.map((m, idx) => {
+          const left = idx > 0 ? ids[idx - 1] : null;
+          const right = idx < ids.length - 1 ? ids[idx + 1] : null;
+          const neighbors = {
+            left,
+            right,
+            up: baseNeighborUp ? (typeof baseNeighborUp === "function" ? baseNeighborUp(idx) : baseNeighborUp) : null,
+            down: baseNeighborDown ? (typeof baseNeighborDown === "function" ? baseNeighborDown(idx) : baseNeighborDown) : null,
+          };
+          return <MovieCard key={m.id} movie={m} focusId={ids[idx]} neighbors={neighbors} />;
+        })}
       </div>
     </section>
   );

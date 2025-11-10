@@ -1,6 +1,7 @@
 import React, { useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import Button from "../components/Button";
+import { useFocusable, useFocusManager } from "../remote/focus/FocusContext";
 
 /**
  * PUBLIC_INTERFACE
@@ -9,11 +10,24 @@ import Button from "../components/Button";
  */
 export default function Splash() {
   const navigate = useNavigate();
+  const { setFocus } = useFocusManager();
 
   useEffect(() => {
     const t = setTimeout(() => navigate("/home"), 1600);
     return () => clearTimeout(t);
   }, [navigate]);
+
+  const { focusableProps: enterProps } = useFocusable({
+    id: "splash-enter",
+    onSelect: () => navigate("/home"),
+    defaultFocused: true,
+  });
+
+  const { focusableProps: loginProps } = useFocusable({
+    id: "splash-login",
+    onSelect: () => navigate("/login"),
+    neighbors: { left: "splash-enter", right: null, up: null, down: null },
+  });
 
   return (
     <div className="min-h-screen bg-ocean-gradient flex items-center justify-center relative overflow-hidden">
@@ -32,8 +46,10 @@ export default function Splash() {
           Stream a world of stories with a clean, modern experience.
         </p>
         <div className="mt-6 flex items-center justify-center gap-3">
-          <Button onClick={() => navigate("/home")}>Enter</Button>
-          <Link to="/login" className="text-sm text-slate-700 underline hover:text-slate-900">
+          <span {...enterProps}>
+            <Button onClick={() => navigate("/home")}>Enter</Button>
+          </span>
+          <Link to="/login" className="text-sm text-slate-700 underline hover:text-slate-900" {...loginProps}>
             Login
           </Link>
         </div>
