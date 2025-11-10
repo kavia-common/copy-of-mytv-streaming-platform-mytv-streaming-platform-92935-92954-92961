@@ -13,7 +13,8 @@
   min-height: 100vh;
 }
 
-/* Utility: sticky navbar backplate when scrolled */
+/* Utility: sticky navbar backplate when scrolled
+   Applied when NavBar toggles "solid" on scroll; keeps a translucent, Netflix-like blur over hero. */
 .navbackdrop {
   backdrop-filter: saturate(160%) blur(6px);
 }

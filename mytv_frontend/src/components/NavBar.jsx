@@ -44,13 +44,13 @@ export default function NavBar() {
 
   return (
     <nav
-      className={`fixed top-0 left-0 right-0 z-40 transition-colors duration-300 ${
+      className={`fixed top-0 left-0 right-0 z-50 transition-colors duration-300 ${
         solid ? "bg-black/70 navbackdrop" : "bg-gradient-to-b from-black/60 to-transparent"
       }`}
       role="navigation"
       aria-label="Top Navigation"
     >
-      <div className="mx-auto max-w-7xl px-4 sm:px-5 md:px-6 lg:px-8 py-3 flex items-center justify-between">
+      <div className="mx-auto max-w-7xl px-4 sm:px-5 md:px-6 lg:px-8 py-2.5 md:py-3 flex items-center justify-between">
         <div className="flex items-center gap-6">
           <Link to="/home" className="text-2xl font-extrabold tracking-tight">
             <span className="text-white">My</span>

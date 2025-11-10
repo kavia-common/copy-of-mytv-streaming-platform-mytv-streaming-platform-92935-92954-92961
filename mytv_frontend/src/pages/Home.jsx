@@ -45,9 +45,9 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-[color:var(--ocean-bg)] flex flex-col">
       <NavBar />
-      <main className="pt-16 flex-1">
+      <main className="pt-16 md:pt-20 flex-1">
         <HeroBanner movie={featured} />
-        <div className="mt-2 space-y-2">
+        <div className="mt-1 space-y-2">
           {/* Anchored sections for navbar hash links */}
           <div id="tv">
             <Rail
