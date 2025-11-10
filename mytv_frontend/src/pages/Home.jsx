@@ -8,7 +8,7 @@ import { useFocusManager } from "../remote/focus/FocusContext";
 /**
  * PUBLIC_INTERFACE
  * Home
- * Fixed top nav, hero banner from featured movie, and horizontal rails by genre.
+ * Sticky nav, tall hero with gradient background, and several horizontal rails that scroll.
  * Adds remote navigation support across rails and cards.
  */
 export default function Home() {
@@ -21,15 +21,14 @@ export default function Home() {
   // Initialize default focus to first item of first rail
   useEffect(() => {
     const defaultId = `rail-0-item-0`;
-    const t = setTimeout(() => setFocus(defaultId), 50);
+    const t = setTimeout(() => setFocus(defaultId), 80);
     return () => clearTimeout(t);
   }, [setFocus]);
 
-  // Determine neighbor functions for up/down transitions between rails at same column index
   const railItems = railOrder.map((genre) => groups[genre] || []);
   const getUpNeighbor = (railIdx, itemIdx) => {
     const prevRail = railIdx - 1;
-    if (prevRail < 0) return "navbar-login"; // jump to login button in navbar if pressing up from first rail
+    if (prevRail < 0) return "navbar-login";
     const prevLen = railItems[prevRail]?.length || 0;
     const col = Math.min(itemIdx, prevLen - 1);
     return `rail-${prevRail}-item-${Math.max(0, col)}`;
@@ -43,23 +42,25 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen bg-[#0b1020]">
+    <div className="min-h-screen bg-[color:var(--ocean-bg)]">
       <NavBar />
       <main className="pt-16">
         <HeroBanner movie={featured} />
-        {railOrder.map((genre, railIdx) =>
-          railItems[railIdx]?.length ? (
-            <Rail
-              key={genre}
-              title={genre}
-              items={railItems[railIdx]}
-              railIndex={railIdx}
-              baseId="rail"
-              baseNeighborUp={(itemIdx) => getUpNeighbor(railIdx, itemIdx)}
-              baseNeighborDown={(itemIdx) => getDownNeighbor(railIdx, itemIdx)}
-            />
-          ) : null
-        )}
+        <div className="mt-2">
+          {railOrder.map((genre, railIdx) =>
+            railItems[railIdx]?.length ? (
+              <Rail
+                key={genre}
+                title={genre}
+                items={railItems[railIdx]}
+                railIndex={railIdx}
+                baseId="rail"
+                baseNeighborUp={(itemIdx) => getUpNeighbor(railIdx, itemIdx)}
+                baseNeighborDown={(itemIdx) => getDownNeighbor(railIdx, itemIdx)}
+              />
+            ) : null
+          )}
+        </div>
       </main>
     </div>
   );

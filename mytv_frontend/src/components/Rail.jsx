@@ -4,9 +4,8 @@ import MovieCard from "./MovieCard";
 /**
  * PUBLIC_INTERFACE
  * Rail
- * Horizontally scrollable list with prev/next controls on desktop
- * Adds TV-remote focus structure: each item has left/right neighbors,
- * and up/down neighbors are provided by parent page via baseNeighborUp/baseNeighborDown props.
+ * Horizontally scrollable list with prev/next controls on desktop,
+ * TV-remote directional neighbors, and subtle hover polish.
  */
 export default function Rail({ title, items = [], railIndex = 0, baseId = "rail", baseNeighborUp, baseNeighborDown }) {
   const ref = useRef(null);
@@ -17,20 +16,20 @@ export default function Rail({ title, items = [], railIndex = 0, baseId = "rail"
   const ids = useMemo(() => items.map((m, idx) => `${baseId}-${railIndex}-item-${idx}`), [items, railIndex, baseId]);
 
   return (
-    <section className="relative my-6">
+    <section className="relative my-8">
       <div className="mx-6 flex items-center justify-between">
         <h2 className="text-xl md:text-2xl font-bold text-white">{title}</h2>
         <div className="hidden md:flex gap-2">
           <button
             aria-label={`${title} previous`}
-            onClick={() => scrollBy(-400)}
+            onClick={() => scrollBy(-500)}
             className="rounded-full bg-white/10 p-2 text-white hover:bg-white/20"
           >
             ‹
           </button>
           <button
             aria-label={`${title} next`}
-            onClick={() => scrollBy(400)}
+            onClick={() => scrollBy(500)}
             className="rounded-full bg-white/10 p-2 text-white hover:bg-white/20"
           >
             ›
@@ -50,7 +49,7 @@ export default function Rail({ title, items = [], railIndex = 0, baseId = "rail"
             up: baseNeighborUp ? (typeof baseNeighborUp === "function" ? baseNeighborUp(idx) : baseNeighborUp) : null,
             down: baseNeighborDown ? (typeof baseNeighborDown === "function" ? baseNeighborDown(idx) : baseNeighborDown) : null,
           };
-          return <MovieCard key={m.id} movie={m} focusId={ids[idx]} neighbors={neighbors} />;
+          return <MovieCard key={`${m.id}-${idx}`} movie={m} focusId={ids[idx]} neighbors={neighbors} />;
         })}
       </div>
     </section>

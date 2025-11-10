@@ -7,14 +7,14 @@ import React from "react";
  */
 export default function Button({ children, className = "", variant = "primary", ...props }) {
   const base =
-    "inline-flex items-center justify-center rounded-md px-4 py-2 text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-60 disabled:cursor-not-allowed";
+    "inline-flex items-center justify-center rounded-md px-4 py-2 text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-offset-0 disabled:opacity-60 disabled:cursor-not-allowed";
   const variants = {
     primary:
-      "bg-ocean-primary text-white hover:bg-blue-600 focus:ring-blue-400 focus:ring-offset-slate-800",
+      "bg-ocean-primary text-white hover:bg-blue-600 focus:ring-blue-400",
     secondary:
-      "bg-ocean-secondary text-slate-900 hover:bg-amber-400 focus:ring-amber-300 focus:ring-offset-slate-800",
+      "bg-ocean-secondary text-slate-900 hover:bg-amber-400 focus:ring-amber-300",
     ghost:
-      "bg-transparent text-gray-200 hover:bg-white/10 focus:ring-white/30 focus:ring-offset-slate-800",
+      "bg-white/10 text-gray-100 hover:bg-white/20 focus:ring-white/30",
   };
   return (
     <button className={`${base} ${variants[variant]} ${className}`} {...props}>
