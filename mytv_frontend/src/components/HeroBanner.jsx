@@ -107,8 +107,8 @@ export default function HeroBanner({ movie }) {
         aria-hidden="true"
       />
 
-      {/* Content */}
-      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-5 md:px-6 lg:px-8 pt-24 md:pt-36">
+      {/* Content: include internal safe-top padding to avoid navbar overlap without shifting the whole page */}
+      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-5 md:px-6 lg:px-8 pt-24 md:pt-32">
         <div className="max-w-3xl">
           <h1 className="text-4xl md:text-6xl font-extrabold text-white drop-shadow md:leading-[1.05]">
             {movie.title}
