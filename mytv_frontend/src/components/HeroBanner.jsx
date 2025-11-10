@@ -46,6 +46,11 @@ export default function HeroBanner({ movie }) {
       }
     } catch {
       setVideoError(true);
+    } finally {
+      // mark video ready for fade-in class
+      requestAnimationFrame(() => {
+        videoRef.current?.classList?.add("hero-video-ready");
+      });
     }
   };
 
@@ -63,7 +68,7 @@ export default function HeroBanner({ movie }) {
       {showVideo ? (
         <video
           ref={videoRef}
-          className="absolute inset-0 h-full w-full object-cover"
+          className="absolute inset-0 h-full w-full object-cover hero-video"
           autoPlay
           muted
           loop
@@ -109,11 +114,11 @@ export default function HeroBanner({ movie }) {
 
       {/* Content: include internal safe-top padding to avoid navbar overlap without shifting the whole page */}
       <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-5 md:px-6 lg:px-8 pt-24 md:pt-32">
-        <div className="max-w-3xl">
-          <h1 className="text-4xl md:text-6xl font-extrabold text-white drop-shadow md:leading-[1.05]">
+        <div className="max-w-3xl hero-overlay-fade hero-overlay-in">
+          <h1 className="text-4xl md:text-6xl font-extrabold text-white drop-shadow md:leading-[1.05] will-opacity">
             {movie.title}
           </h1>
-          <div className="mt-3 flex flex-wrap items-center gap-3 text-sm text-gray-200/90">
+          <div className="mt-3 flex flex-wrap items-center gap-3 text-sm text-gray-200/90 will-opacity">
             <span className="text-amber-300 font-semibold">
               {movie.rating ? `${movie.rating} Match` : "91% Match"}
             </span>
@@ -123,10 +128,10 @@ export default function HeroBanner({ movie }) {
             </span>
             <span className="text-gray-300/90">{movie.genre}</span>
           </div>
-          <p className="mt-3 md:mt-4 max-w-2xl text-base md:text-lg text-gray-200/90">
+          <p className="mt-3 md:mt-4 max-w-2xl text-base md:text-lg text-gray-200/90 will-opacity">
             {movie.description || "Dive into an immersive story set against the vast, mysterious ocean."}
           </p>
-          <div className="mt-6 flex gap-3">
+          <div className="mt-6 flex gap-3 will-transform motion-transform">
             <Button
               variant="secondary"
               aria-label={`Play ${movie.title}`}

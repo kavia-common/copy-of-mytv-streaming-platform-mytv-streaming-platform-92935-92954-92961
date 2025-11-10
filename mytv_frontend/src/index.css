@@ -10,6 +10,16 @@
   --ocean-bg: #0b0b0b;       /* near-black Netflix-like */
   --ocean-surface: #121212;  /* dark surfaces */
   --ocean-text: #e5e7eb;     /* gray-200 */
+
+  /* Motion design tokens */
+  --ease-smooth: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-emphasized: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
+  --dur-fast: 150ms;
+  --dur-med: 300ms;
+  --dur-slow: 500ms;
+  --blur-weak: 6px;
+  --blur-strong: 12px;
 }
 
 html, body, #root {
@@ -19,6 +29,33 @@ html, body, #root {
 body {
   @apply bg-[color:var(--ocean-bg)] text-[color:var(--ocean-text)] antialiased;
   margin: 0;
+}
+
+/* Motion utilities (lightweight helpers leveraging CSS variables) */
+.motion-opacity {
+  transition-property: opacity;
+  transition-duration: var(--dur-med);
+  transition-timing-function: var(--ease-standard);
+}
+.motion-transform {
+  transition-property: transform;
+  transition-duration: var(--dur-med);
+  transition-timing-function: var(--ease-smooth);
+}
+.motion-all {
+  transition-property: opacity, transform, filter, box-shadow, background-color, color;
+  transition-duration: var(--dur-med);
+  transition-timing-function: var(--ease-smooth);
+}
+.gpu {
+  transform: translateZ(0);
+  will-change: transform;
+}
+.will-opacity {
+  will-change: opacity;
+}
+.will-transform {
+  will-change: transform;
 }
 
 /* Smooth scrolling experience for carousels */
@@ -39,4 +76,53 @@ body {
   /* Mirror hover emphasis: ring + slight scale without animation jitter */
   box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.95), 0 20px 40px -20px rgba(0,0,0,0.6);
   border-radius: 0.5rem; /* slightly more rounded for media tiles */
+}
+
+/* Helper: subtle chevron reveal animation */
+.rail-chevron {
+  opacity: 0;
+  transform: translateY(2px);
+  transition: opacity var(--dur-med) var(--ease-standard), transform var(--dur-med) var(--ease-smooth);
+  will-change: opacity, transform;
+}
+.rail-chevron-show {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Nav translucency/blur intensities */
+.nav-translucent {
+  background-image: linear-gradient(to bottom, rgba(0,0,0,0.6), rgba(0,0,0,0));
+  transition: background-color var(--dur-med) var(--ease-standard), backdrop-filter var(--dur-med) var(--ease-standard);
+}
+.nav-solid {
+  background-color: rgba(0,0,0,0.68);
+  backdrop-filter: saturate(160%) blur(var(--blur-weak));
+}
+
+/* Stronger blur variant when scrolled deeper */
+.nav-solid-strong {
+  background-color: rgba(0,0,0,0.72);
+  backdrop-filter: saturate(180%) blur(var(--blur-strong));
+}
+
+/* Hero video fade handling */
+.hero-video {
+  opacity: 0;
+  transition: opacity var(--dur-slow) var(--ease-emphasized);
+  will-change: opacity;
+}
+.hero-video-ready {
+  opacity: 1;
+}
+
+.hero-overlay-fade {
+  opacity: 0;
+  transform: translateY(6px);
+  transition: opacity var(--dur-med) var(--ease-smooth), transform var(--dur-med) var(--ease-smooth);
+  will-change: opacity, transform;
+}
+.hero-overlay-in {
+  opacity: 1;
+  transform: translateY(0);
 }

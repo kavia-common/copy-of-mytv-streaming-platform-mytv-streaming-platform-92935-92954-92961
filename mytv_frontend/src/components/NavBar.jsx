@@ -15,9 +15,14 @@ export default function NavBar() {
   const location = useLocation();
   const navigate = useNavigate();
   const [solid, setSolid] = useState(false);
+  const [deep, setDeep] = useState(false);
 
   useEffect(() => {
-    const onScroll = () => setSolid(window.scrollY > 10);
+    const onScroll = () => {
+      const y = window.scrollY || 0;
+      setSolid(y > 10);
+      setDeep(y > 240);
+    };
     onScroll();
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
@@ -44,8 +49,8 @@ export default function NavBar() {
 
   return (
     <nav
-      className={`fixed top-0 left-0 right-0 z-50 transition-colors duration-300 ${
-        solid ? "bg-black/70 navbackdrop" : "bg-gradient-to-b from-black/60 to-transparent"
+      className={`fixed top-0 left-0 right-0 z-50 nav-translucent motion-opacity ${
+        solid ? (deep ? "nav-solid-strong" : "nav-solid") : ""
       }`}
       role="navigation"
       aria-label="Top Navigation"

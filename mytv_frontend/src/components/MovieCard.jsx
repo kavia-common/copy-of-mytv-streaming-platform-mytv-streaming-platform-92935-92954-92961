@@ -38,10 +38,10 @@ export default function MovieCard({ movie, focusId, neighbors, onSelect }) {
     >
       <div
         className={`relative aspect-[16/9] w-full rounded-md bg-[color:var(--ocean-surface)]
-          transition-transform duration-300 ease-smooth transform-gpu will-change-transform
+          transform-gpu gpu will-transform motion-transform
           ring-1 ring-white/10
-          group-hover:scale-[1.07] group-hover:drop-shadow-xl
-          ${focused ? "scale-[1.07] drop-shadow-xl" : ""}
+          group-hover:scale-[1.06] group-hover:shadow-card-hover
+          ${focused ? "scale-[1.06] shadow-card-hover" : ""}
         `}
         aria-hidden="true"
       >
@@ -55,8 +55,8 @@ export default function MovieCard({ movie, focusId, neighbors, onSelect }) {
 
         {/* Delayed hover/focus preview panel */}
         <div
-          className={`absolute left-0 right-0 bottom-0 translate-y-1 opacity-0
-            transition-all duration-300 ease-out delay-150
+          className={`absolute left-0 right-0 bottom-0 translate-y-1 opacity-0 will-opacity will-transform
+            transition-opacity transition-transform duration-300 ease-out delay-150
             group-hover:opacity-100 group-hover:translate-y-0
             ${focused ? "opacity-100 translate-y-0" : ""}
           `}
@@ -77,7 +77,7 @@ export default function MovieCard({ movie, focusId, neighbors, onSelect }) {
       </div>
 
       {/* Title below card - compact single line */}
-      <div className="mt-1 text-[13px] font-medium text-gray-200 line-clamp-1">{movie.title}</div>
+      <div className="mt-1 text-[13px] font-medium text-gray-200 line-clamp-1 will-opacity motion-opacity">{movie.title}</div>
     </div>
   );
 }
