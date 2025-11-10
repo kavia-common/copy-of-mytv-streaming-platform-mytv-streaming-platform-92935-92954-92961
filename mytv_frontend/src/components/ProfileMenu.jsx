@@ -24,6 +24,7 @@ export default function ProfileMenu({ idBase = "profile" }) {
   });
 
   const items = [
+    { id: "settings", label: "Settings", action: () => navigate("/settings") },
     { id: "profile", label: "Profile", action: () => navigate("/home#profile") },
     { id: "accounts", label: "Accounts", action: () => navigate("/home#accounts") },
     { id: "help", label: "Help Center", action: () => navigate("/home#help") },
