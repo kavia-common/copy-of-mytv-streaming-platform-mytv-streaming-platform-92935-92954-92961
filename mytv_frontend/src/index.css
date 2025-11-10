@@ -25,6 +25,7 @@ body {
 .rail-scroll {
   scroll-snap-type: x mandatory;
   -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
 }
 
 /* Horizontal rail cards snap on mobile for better feel */

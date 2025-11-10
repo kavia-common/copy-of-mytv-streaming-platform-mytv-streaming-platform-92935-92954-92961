@@ -9,8 +9,8 @@ import { useFocusManager } from "../remote/focus/FocusContext";
 /**
  * PUBLIC_INTERFACE
  * Home
- * Sticky nav, tall hero with gradient background, and several horizontal rails that scroll.
- * Adds remote navigation support across rails and cards.
+ * Sticky translucent navbar, cinematic hero, and polished horizontal rails.
+ * Maintains accessibility and TV remote navigation. Footer appears only on Home.
  */
 export default function Home() {
   const groups = useMemo(() => groupByGenre(movies), []);
@@ -31,15 +31,15 @@ export default function Home() {
     const prevRail = railIdx - 1;
     if (prevRail < 0) return "navbar-login";
     const prevLen = railItems[prevRail]?.length || 0;
-    const col = Math.min(itemIdx, prevLen - 1);
-    return `rail-${prevRail}-item-${Math.max(0, col)}`;
+    const col = Math.min(itemIdx, Math.max(prevLen - 1, 0));
+    return `rail-${prevRail}-item-${col}`;
   };
   const getDownNeighbor = (railIdx, itemIdx) => {
     const nextRail = railIdx + 1;
     if (nextRail >= railItems.length) return null;
     const nextLen = railItems[nextRail]?.length || 0;
-    const col = Math.min(itemIdx, nextLen - 1);
-    return `rail-${nextRail}-item-${Math.max(0, col)}`;
+    const col = Math.min(itemIdx, Math.max(nextLen - 1, 0));
+    return `rail-${nextRail}-item-${col}`;
   };
 
   return (
@@ -47,20 +47,48 @@ export default function Home() {
       <NavBar />
       <main className="pt-16 flex-1">
         <HeroBanner movie={featured} />
-        <div className="mt-2">
-          {railOrder.map((genre, railIdx) =>
-            railItems[railIdx]?.length ? (
-              <Rail
-                key={genre}
-                title={genre}
-                items={railItems[railIdx]}
-                railIndex={railIdx}
-                baseId="rail"
-                baseNeighborUp={(itemIdx) => getUpNeighbor(railIdx, itemIdx)}
-                baseNeighborDown={(itemIdx) => getDownNeighbor(railIdx, itemIdx)}
-              />
-            ) : null
-          )}
+        <div className="mt-2 space-y-2">
+          {/* Anchored sections for navbar hash links */}
+          <div id="tv">
+            <Rail
+              title="Trending"
+              items={railItems[0]}
+              railIndex={0}
+              baseId="rail"
+              baseNeighborUp={(itemIdx) => getUpNeighbor(0, itemIdx)}
+              baseNeighborDown={(itemIdx) => getDownNeighbor(0, itemIdx)}
+            />
+          </div>
+          <div id="movies">
+            <Rail
+              title="Action"
+              items={railItems[1]}
+              railIndex={1}
+              baseId="rail"
+              baseNeighborUp={(itemIdx) => getUpNeighbor(1, itemIdx)}
+              baseNeighborDown={(itemIdx) => getDownNeighbor(1, itemIdx)}
+            />
+          </div>
+          <div id="new">
+            <Rail
+              title="Comedy"
+              items={railItems[2]}
+              railIndex={2}
+              baseId="rail"
+              baseNeighborUp={(itemIdx) => getUpNeighbor(2, itemIdx)}
+              baseNeighborDown={(itemIdx) => getDownNeighbor(2, itemIdx)}
+            />
+          </div>
+          <div id="list">
+            <Rail
+              title="Drama"
+              items={railItems[3]}
+              railIndex={3}
+              baseId="rail"
+              baseNeighborUp={(itemIdx) => getUpNeighbor(3, itemIdx)}
+              baseNeighborDown={(itemIdx) => getDownNeighbor(3, itemIdx)}
+            />
+          </div>
         </div>
       </main>
       <Footer />
