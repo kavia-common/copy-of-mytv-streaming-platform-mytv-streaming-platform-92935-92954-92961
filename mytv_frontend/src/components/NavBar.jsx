@@ -1,12 +1,14 @@
 import React, { useEffect, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useFocusable } from "../remote/focus/FocusContext";
+import ProfileMenu from "./ProfileMenu";
 
 /**
  * PUBLIC_INTERFACE
  * NavBar
- * Sticky top navigation with brand, section links, search icon and profile/avatar placeholder.
+ * Sticky top navigation with brand, section links, search icon and profile/avatar dropdown.
  * - Semi-transparent on top; becomes solid on scroll.
+ * - Profile menu is keyboard accessible and TV-remote friendly.
  */
 export default function NavBar() {
   const location = useLocation();
@@ -30,6 +32,7 @@ export default function NavBar() {
 
   const { focusableProps: loginFocus } = useFocusable({
     id: "navbar-login",
+    neighbors: { right: "profile-avatar" },
     onSelect: () => navigate("/login"),
   });
 
@@ -79,7 +82,8 @@ export default function NavBar() {
                 Login
               </Link>
             )}
-            <div className="h-8 w-8 rounded bg-white/10 flex items-center justify-center text-sm text-white/80">A</div>
+            {/* Profile menu with avatar + dropdown */}
+            <ProfileMenu idBase="profile" />
           </div>
         </div>
       </div>

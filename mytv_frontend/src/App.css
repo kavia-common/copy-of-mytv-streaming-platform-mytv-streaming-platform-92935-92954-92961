@@ -17,3 +17,8 @@
 .navbackdrop {
   backdrop-filter: saturate(160%) blur(6px);
 }
+
+/* Ensure footer doesn't overlap content on small screens when using fixed/sticky elements */
+main {
+  min-height: 60vh;
+}

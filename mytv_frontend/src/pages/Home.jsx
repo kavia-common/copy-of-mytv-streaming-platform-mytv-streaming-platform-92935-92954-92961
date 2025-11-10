@@ -2,6 +2,7 @@ import React, { useEffect, useMemo } from "react";
 import NavBar from "../components/NavBar";
 import HeroBanner from "../components/HeroBanner";
 import Rail from "../components/Rail";
+import Footer from "../components/Footer";
 import { movies, groupByGenre } from "../data/movies";
 import { useFocusManager } from "../remote/focus/FocusContext";
 
@@ -42,9 +43,9 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen bg-[color:var(--ocean-bg)]">
+    <div className="min-h-screen bg-[color:var(--ocean-bg)] flex flex-col">
       <NavBar />
-      <main className="pt-16">
+      <main className="pt-16 flex-1">
         <HeroBanner movie={featured} />
         <div className="mt-2">
           {railOrder.map((genre, railIdx) =>
@@ -62,6 +63,7 @@ export default function Home() {
           )}
         </div>
       </main>
+      <Footer />
     </div>
   );
 }
