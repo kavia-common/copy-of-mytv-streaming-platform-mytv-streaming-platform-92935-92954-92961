@@ -1,7 +1,6 @@
 import React, { useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import Button from "../components/Button";
-import Footer from "../components/Footer";
 import { useFocusable } from "../remote/focus/FocusContext";
 
 /**
@@ -128,7 +127,6 @@ export default function Login() {
           </div>
         </div>
       </div>
-      <Footer />
     </div>
   );
 }
