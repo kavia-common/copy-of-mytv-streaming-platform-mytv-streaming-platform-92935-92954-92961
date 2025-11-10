@@ -16,9 +16,9 @@ export default function Rail({ title, items = [], railIndex = 0, baseId = "rail"
   const ids = useMemo(() => items.map((m, idx) => `${baseId}-${railIndex}-item-${idx}`), [items, railIndex, baseId]);
 
   return (
-    <section className="relative my-8">
-      <div className="mx-6 flex items-center justify-between">
-        <h2 className="text-xl md:text-2xl font-bold text-white">{title}</h2>
+    <section className="relative my-7 md:my-8">
+      <div className="mx-4 sm:mx-5 md:mx-6 lg:mx-8 flex items-center justify-between">
+        <h2 className="text-lg md:text-2xl font-bold text-white">{title}</h2>
         <div className="hidden md:flex gap-2">
           <button
             aria-label={`${title} previous`}
@@ -38,7 +38,8 @@ export default function Rail({ title, items = [], railIndex = 0, baseId = "rail"
       </div>
       <div
         ref={ref}
-        className="rail-scroll mt-3 flex gap-3 overflow-x-auto px-6 pb-2"
+        // Smaller gaps on mobile, larger on desktop; overflow-visible prevents hover clipping at edges.
+        className="rail-scroll mt-2 md:mt-3 flex gap-2 sm:gap-2.5 md:gap-3 lg:gap-4 overflow-x-auto overflow-y-visible px-4 sm:px-5 md:px-6 lg:px-8 pb-2"
       >
         {items.map((m, idx) => {
           const left = idx > 0 ? ids[idx - 1] : null;
