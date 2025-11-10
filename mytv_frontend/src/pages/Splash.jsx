@@ -1,7 +1,6 @@
 import React, { useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import Button from "../components/Button";
-import Footer from "../components/Footer";
 import { useFocusable } from "../remote/focus/FocusContext";
 
 /**
@@ -54,9 +53,6 @@ export default function Splash() {
             </Link>
           </div>
         </div>
-      </div>
-      <div className="relative z-10">
-        <Footer />
       </div>
     </div>
   );
