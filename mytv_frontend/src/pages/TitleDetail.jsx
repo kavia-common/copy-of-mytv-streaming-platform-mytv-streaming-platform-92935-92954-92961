@@ -13,7 +13,7 @@ import { useFocusable } from "../remote/focus/FocusContext";
  * - Full-bleed hero background using the clicked card's image
  * - Movie name at the top, description immediately below the heading
  * - Four control actions rendered as icon-only buttons in a single horizontal row beneath the description:
- *   Play from start, Play from current, Stop, Language settings
+ *   Play from start, Play from current, Back, Language settings
  * - Handles missing/invalid ids gracefully with a friendly message and link back to Home
  * - TV remote focus support with focusable pill icon buttons; responsive layout and keyboard focus
  */
@@ -36,17 +36,18 @@ export default function TitleDetail() {
   });
   const { focusableProps: playCurrentFocus } = useFocusable({
     id: "detail-play-current",
-    neighbors: { left: "detail-play-start", right: "detail-stop" },
+    neighbors: { left: "detail-play-start", right: "detail-back" },
     onSelect: () => window.alert?.("Play from the current position"),
   });
-  const { focusableProps: stopFocus } = useFocusable({
-    id: "detail-stop",
+  const { focusableProps: backFocus } = useFocusable({
+    id: "detail-back",
     neighbors: { left: "detail-play-current", right: "detail-lang" },
-    onSelect: () => window.alert?.("Stop playback"),
+    onSelect: () => navigate(-1),
+    onBack: () => navigate(-1),
   });
   const { focusableProps: langFocus } = useFocusable({
     id: "detail-lang",
-    neighbors: { left: "detail-stop" },
+    neighbors: { left: "detail-back" },
     onSelect: () => navigate("/settings"),
   });
 
@@ -154,14 +155,14 @@ export default function TitleDetail() {
                   </IconPillButton>
                 </div>
 
-                <div {...stopFocus} className="outline-none rounded-full" aria-label="Stop container">
+                <div {...backFocus} className="outline-none rounded-full" aria-label="Back container">
                   <IconPillButton
                     variant="ghost"
-                    ariaLabel={`Stop ${movie.title}`}
-                    tooltip="Stop"
-                    onClick={() => window.alert?.("Stop")}
+                    ariaLabel="Go back"
+                    tooltip="Back"
+                    onClick={() => navigate(-1)}
                   >
-                    <span aria-hidden="true">⏹</span>
+                    <span aria-hidden="true">←</span>
                   </IconPillButton>
                 </div>
 
