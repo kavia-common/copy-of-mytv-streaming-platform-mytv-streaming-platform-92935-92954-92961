@@ -50,8 +50,9 @@ export default function PlayerOverlay({ src, onClose, title = "Now Playing" }) {
         playerRef.current = player;
 
         player.addEventListener("error", (evt) => {
-          console.error("Shaka error", evt?.detail || evt);
-          setErrorText("Playback error");
+          const detail = evt?.detail || evt;
+          console.error("Shaka error", detail);
+          setErrorText(detail?.message || "Playback error");
         });
 
         // Try loading the provided src; handle both DASH and HLS (Shaka supports both with transmuxing where available).
@@ -66,7 +67,7 @@ export default function PlayerOverlay({ src, onClose, title = "Now Playing" }) {
         if (mounted) setReady(true);
       } catch (e) {
         console.error("Shaka init/load failed:", e);
-        if (mounted) setErrorText("Failed to load stream");
+        if (mounted) setErrorText(e?.message || "Failed to load stream");
       }
     }
 

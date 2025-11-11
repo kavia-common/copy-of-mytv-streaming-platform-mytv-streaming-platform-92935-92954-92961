@@ -13,6 +13,16 @@
 - Theme:
   - Ocean Professional (blue and amber accents, dark content area, modern spacing + shadows)
 
+## Mock Play API and troubleshooting "failed to fetch"
+
+- The Title Detail "Play" button calls a mock API at: https://5bc9cfc0.api.kavia.app/api/play
+- By default, if REACT_APP_API_BASE/REACT_APP_BACKEND_URL are not absolute HTTPS URLs, the app will use the mock API directly.
+- If you see "failed to fetch":
+  - Ensure the app is served over HTTPS to avoid mixed-content blocking when requesting HTTPS APIs.
+  - Verify your REACT_APP_API_BASE is an absolute URL (e.g., https://api.example.com). Relative paths like "/api" are ignored for this call.
+  - Check the browser Console/Network tab for CORS errors. The mock API sends permissive CORS headers.
+  - You can copy .env.example to .env and set REACT_APP_API_BASE to your own absolute backend to override the mock.
+
 ## TV Remote Navigation (Samsung Tizen and Web Fallback)
 
 - A TV-style focus manager and remote key handler are provided:

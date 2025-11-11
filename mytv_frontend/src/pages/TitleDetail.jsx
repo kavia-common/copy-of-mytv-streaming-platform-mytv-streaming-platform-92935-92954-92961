@@ -130,12 +130,25 @@ export default function TitleDetail() {
     setStreamUrl("");
     const ctrl = new AbortController();
     try {
-      const { url } = await getPlayStream({ signal: ctrl.signal });
+      const { url, type, raw } = await getPlayStream({ signal: ctrl.signal });
+      console.info("Play URL fetched successfully", { url, type, raw });
       setStreamUrl(url);
       setShowPlayer(true);
     } catch (e) {
-      console.error("Failed to fetch play URL:", e);
-      setPlayError(e?.message || "Failed to start playback. Please try again.");
+      // Surface helpful diagnostics and show a friendly message
+      console.error("Failed to fetch play URL:", {
+        message: e?.message,
+        stack: e?.stack,
+      });
+      const msg = (e?.message || "").toLowerCase();
+      let friendly = "Failed to start playback. Please try again.";
+      if (msg.includes("network") || msg.includes("cors")) {
+        friendly =
+          "Network error contacting the Play service. Please check your connection and try again.";
+      } else if (msg.includes("mixed-content")) {
+        friendly = "Blocked by mixed content policy. Please use HTTPS to load the app.";
+      }
+      setPlayError(friendly);
     } finally {
       setLoadingPlay(false);
     }
