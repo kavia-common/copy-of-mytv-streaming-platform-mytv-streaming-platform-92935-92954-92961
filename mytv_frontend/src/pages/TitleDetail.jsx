@@ -133,7 +133,17 @@ export default function TitleDetail() {
                 role="group"
                 aria-label="Player controls"
               >
-                <div {...playStartFocus} className="outline-none rounded-full" aria-label="Play from start container">
+                <div
+                  {...playStartFocus}
+                  className="outline-none rounded-full"
+                  aria-label="Play from start container"
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.keyCode === 13) {
+                      e.preventDefault();
+                      window.alert?.("Play from the start");
+                    }
+                  }}
+                >
                   <IconPillButton
                     variant="primary"
                     ariaLabel={`Play ${movie.title} from the start`}
@@ -144,7 +154,17 @@ export default function TitleDetail() {
                   </IconPillButton>
                 </div>
 
-                <div {...playCurrentFocus} className="outline-none rounded-full" aria-label="Resume container">
+                <div
+                  {...playCurrentFocus}
+                  className="outline-none rounded-full"
+                  aria-label="Resume container"
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.keyCode === 13) {
+                      e.preventDefault();
+                      window.alert?.("Play from the current position");
+                    }
+                  }}
+                >
                   <IconPillButton
                     variant="secondary"
                     ariaLabel={`Play ${movie.title} from the current position`}
@@ -155,7 +175,17 @@ export default function TitleDetail() {
                   </IconPillButton>
                 </div>
 
-                <div {...backFocus} className="outline-none rounded-full" aria-label="Back container">
+                <div
+                  {...backFocus}
+                  className="outline-none rounded-full"
+                  aria-label="Back container"
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.keyCode === 13) {
+                      e.preventDefault();
+                      navigate(-1);
+                    }
+                  }}
+                >
                   <IconPillButton
                     variant="ghost"
                     ariaLabel="Go back"
@@ -166,7 +196,17 @@ export default function TitleDetail() {
                   </IconPillButton>
                 </div>
 
-                <div {...langFocus} className="outline-none rounded-full" aria-label="Language settings container">
+                <div
+                  {...langFocus}
+                  className="outline-none rounded-full"
+                  aria-label="Language settings container"
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.keyCode === 13) {
+                      e.preventDefault();
+                      navigate("/settings");
+                    }
+                  }}
+                >
                   <IconPillButton
                     variant="secondary"
                     ariaLabel="Language settings"

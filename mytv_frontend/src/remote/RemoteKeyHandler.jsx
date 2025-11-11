@@ -21,8 +21,12 @@ export default function RemoteKeyHandler() {
       const logical = getKeyFromEvent(e);
       if (!logical) return;
 
-      // Prevent default scrolling on arrow keys in TV UX
-      if (["up", "down", "left", "right"].includes(logical)) {
+      // Do not hijack typing inside inputs/textareas
+      const tag = (e.target && e.target.tagName) ? e.target.tagName.toLowerCase() : "";
+      const isTypingField = tag === "input" || tag === "textarea";
+
+      // Prevent default scrolling on arrow keys in TV UX (except when typing)
+      if (!isTypingField && ["up", "down", "left", "right"].includes(logical)) {
         e.preventDefault?.();
       }
 

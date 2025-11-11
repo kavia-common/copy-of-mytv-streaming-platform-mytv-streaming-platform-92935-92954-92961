@@ -36,6 +36,14 @@ export default function MovieCard({ movie, focusId, neighbors, onSelect }) {
   return (
     <div
       {...focusableProps}
+      role="button"
+      aria-label={`${movie?.title || "Movie"} card`}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.keyCode === 13) {
+          e.preventDefault();
+          handleSelect();
+        }
+      }}
       className={`rail-item group relative flex-none cursor-pointer outline-none
         w-36 h-20 sm:w-36 sm:h-20 md:w-44 md:h-24 lg:w-56 lg:h-32 xl:w-64 xl:h-36
         overflow-visible
