@@ -255,47 +255,57 @@ export default function PlayerOverlay({ src, type, onClose, title = "Now Playing
     }
   }
 
-  // Remote key handling within overlay
-  const onKeyDown = useCallback(
+  // Remote key handling within overlay: scoped and resilient even when <video> has focus.
+  const overlayKeyHandler = useCallback(
     (e) => {
       const logical = getKeyFromEvent(e);
       if (!logical) return;
 
-      // Do not hijack typing fields (rare in overlay)
+      // Do not hijack typing fields
       const tag = (e.target && e.target.tagName) ? e.target.tagName.toLowerCase() : "";
       const isTypingField = tag === "input" || tag === "textarea";
-
       if (!isTypingField && ["up", "down", "left", "right"].includes(logical)) {
-        e.preventDefault?.();
+        e.preventDefault?.(); // prevent page scroll or default arrow handling
       }
 
-      // Showing controls on any interaction
+      // Always reveal controls on interaction
       showControls();
 
-      if (logical === "enter") {
-        e.preventDefault?.();
-        togglePlay();
-      } else if (logical === "left") {
-        seekBy(-10);
-      } else if (logical === "right") {
-        seekBy(10);
-      } else if (logical === "back") {
-        e.preventDefault?.();
-        onClose?.();
+      switch (logical) {
+        case "enter":
+          e.preventDefault?.();
+          togglePlay();
+          break;
+        case "left":
+          seekBy(-10);
+          break;
+        case "right":
+          seekBy(10);
+          break;
+        case "back":
+          // Samsung Back key (10009), Escape, Backspace should close overlay
+          // Prevent default to avoid browser navigation or Tizen system back bubbling
+          e.preventDefault?.();
+          e.stopPropagation?.();
+          onClose?.();
+          break;
+        default:
+          break;
       }
     },
     [onClose, seekBy, showControls]
   );
 
-  useEffect(() => {
-    window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
-  }, [onKeyDown]);
-
   // Mouse movement/hover shows controls
   const onMouseActivity = useCallback(() => {
     showControls();
   }, [showControls]);
+
+  // Focus the overlay root on mount so it can capture Back/Escape, without disturbing input fields (none here)
+  useEffect(() => {
+    const t = setTimeout(() => overlayRef.current?.focus?.(), 0);
+    return () => clearTimeout(t);
+  }, []);
 
   // Compute played percentage
   const playedPct = useMemo(() => {
@@ -322,8 +332,34 @@ export default function PlayerOverlay({ src, type, onClose, title = "Now Playing
     });
   }, [bufferedRanges, duration]);
 
+  const overlayRef = useRef(null);
+
+  // Attach an overlay-scoped keydown listener
+  useEffect(() => {
+    const el = overlayRef.current;
+    if (!el) return;
+    el.addEventListener("keydown", overlayKeyHandler);
+    return () => {
+      el.removeEventListener("keydown", overlayKeyHandler);
+    };
+  }, [overlayKeyHandler]);
+
+  // Also capture Back/Escape when video has focus by listening at window in capture phase,
+  // but only act if the event target is inside the overlay.
+  useEffect(() => {
+    const onWindowKeyDownCapture = (e) => {
+      const overlayEl = overlayRef.current;
+      if (!overlayEl) return;
+      if (!overlayEl.contains(e.target)) return; // ignore outside overlay
+      overlayKeyHandler(e);
+    };
+    window.addEventListener("keydown", onWindowKeyDownCapture, true);
+    return () => window.removeEventListener("keydown", onWindowKeyDownCapture, true);
+  }, [overlayKeyHandler]);
+
   return (
     <div
+      ref={overlayRef}
       role="dialog"
       aria-label="Video Player"
       aria-modal="true"
@@ -331,6 +367,7 @@ export default function PlayerOverlay({ src, type, onClose, title = "Now Playing
       onMouseMove={onMouseActivity}
       onMouseEnter={onMouseActivity}
       onClick={onMouseActivity}
+      tabIndex={-1}
     >
       {/* Top bar: Ocean theme back/close affordance */}
       <div className={`absolute top-0 left-0 right-0 flex items-center justify-between px-4 md:px-6 py-3 bg-black/40 backdrop-blur-sm transition-opacity ${controlsVisible ? "opacity-100" : "opacity-0"}`}>
