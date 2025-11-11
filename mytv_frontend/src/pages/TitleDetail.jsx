@@ -1,8 +1,9 @@
-import React, { useEffect, useMemo, useRef } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import NavBar from "../components/NavBar";
 import Footer from "../components/Footer";
 import Button from "../components/Button";
+import PlayerOverlay from "../components/PlayerOverlay";
 import { movies } from "../data/movies";
 import { useFocusable } from "../remote/focus/FocusContext";
 
@@ -34,17 +35,27 @@ export default function TitleDetail() {
     return movies.find((m) => m.id === targetId) || null;
   }, [id]);
 
+  // Player overlay state
+  const [showPlayer, setShowPlayer] = useState(false);
+  // Placeholder stream (DASH/HLS). User will provide later.
+  const PLACEHOLDER_STREAM =
+    "https://storage.googleapis.com/shaka-demo-assets/angel-one/dash.mpd";
+
+  const openPlayer = () => setShowPlayer(true);
+  const closePlayer = () => setShowPlayer(false);
+
   // Focusable wrappers for the four icon-only buttons
   const { focusableProps: playStartFocus, setFocus } = useFocusable({
     id: "detail-play-start",
     neighbors: { right: "detail-play-current" },
-    onSelect: () => window.alert?.("Play from the start"),
+    onSelect: () => openPlayer(),
     defaultFocused: true,
   });
   const { focusableProps: playCurrentFocus } = useFocusable({
     id: "detail-play-current",
     neighbors: { left: "detail-play-start", right: "detail-back" },
-    onSelect: () => window.alert?.("Play from the current position"),
+    // Stub: reuse overlay; no resume logic yet
+    onSelect: () => openPlayer(),
   });
   const { focusableProps: backFocus } = useFocusable({
     id: "detail-back",
@@ -172,13 +183,13 @@ export default function TitleDetail() {
                   role="button"
                   aria-label="Play from start"
                   className="outline-none rounded-full focus-visible:ring-2 focus-visible:ring-amber-400 data-[focused=true]:ring-2 data-[focused=true]:ring-amber-400"
-                  onKeyDown={(e) => controlKeyHandler(e, () => window.alert?.("Play from the start"))}
+                  onKeyDown={(e) => controlKeyHandler(e, () => openPlayer())}
                 >
                   <IconPillButton
                     variant="primary"
                     ariaLabel={`Play ${movie.title} from the start`}
                     tooltip="Play from start"
-                    onClick={() => window.alert?.("Play from the start")}
+                    onClick={openPlayer}
                   >
                     <span aria-hidden="true">▶</span>
                   </IconPillButton>
@@ -190,13 +201,13 @@ export default function TitleDetail() {
                   role="button"
                   aria-label="Play from current position"
                   className="outline-none rounded-full focus-visible:ring-2 focus-visible:ring-amber-400 data-[focused=true]:ring-2 data-[focused=true]:ring-amber-400"
-                  onKeyDown={(e) => controlKeyHandler(e, () => window.alert?.("Play from the current position"))}
+                  onKeyDown={(e) => controlKeyHandler(e, () => openPlayer())}
                 >
                   <IconPillButton
                     variant="secondary"
                     ariaLabel={`Play ${movie.title} from the current position`}
                     tooltip="Resume"
-                    onClick={() => window.alert?.("Play from the current position")}
+                    onClick={openPlayer}
                   >
                     <span aria-hidden="true">⏯</span>
                   </IconPillButton>
@@ -249,6 +260,23 @@ export default function TitleDetail() {
           </div>
         </section>
       </main>
+      {/* Player overlay mounted when showPlayer is true */}
+      {showPlayer && (
+        <PlayerOverlay
+          src={PLACEHOLDER_STREAM}
+          title={movie?.title || "Now Playing"}
+          onClose={() => {
+            closePlayer();
+            // Restore focus to Play from start after close for TV UX
+            setTimeout(() => {
+              try {
+                setFocus?.("detail-play-start");
+                firstControlRef.current?.focus?.();
+              } catch {}
+            }, 50);
+          }}
+        />
+      )}
       <Footer />
     </div>
   );
