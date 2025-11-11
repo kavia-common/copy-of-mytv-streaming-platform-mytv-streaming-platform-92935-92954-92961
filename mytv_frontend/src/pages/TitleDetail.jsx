@@ -11,8 +11,8 @@ import { useFocusable } from "../remote/focus/FocusContext";
  * TitleDetail
  * Title detail page at /title/:id displaying:
  * - Full-bleed hero background using the clicked card's image
- * - Movie name at the top, a concise description
- * - Four control actions rendered as icon-only buttons in a single horizontal row:
+ * - Movie name at the top, description immediately below the heading
+ * - Four control actions rendered as icon-only buttons in a single horizontal row beneath the description:
  *   Play from start, Play from current, Stop, Language settings
  * - Handles missing/invalid ids gracefully with a friendly message and link back to Home
  * - TV remote focus support with focusable pill icon buttons; responsive layout and keyboard focus
@@ -83,7 +83,7 @@ export default function TitleDetail() {
     <div className="min-h-screen bg-[color:var(--ocean-bg)] flex flex-col">
       <NavBar />
       <main className="flex-1">
-        {/* Hero section */}
+        {/* Hero section with only backdrop and title/meta; description relocated below heading in content card */}
         <section className="relative w-full h-[62vh] min-h-[420px] overflow-hidden">
           <img
             src={movie.backdrop}
@@ -116,65 +116,62 @@ export default function TitleDetail() {
           </div>
         </section>
 
-        {/* Content area */}
+        {/* Content area: description directly below heading context, then horizontal row of icon-only controls */}
         <section className="relative -mt-10">
           <div className="mx-auto max-w-7xl px-4 sm:px-5 md:px-6 lg:px-8">
             <div className="rounded-xl bg-[color:var(--ocean-surface)]/80 ring-1 ring-white/10 shadow-soft p-4 sm:p-6 md:p-8">
+              {/* Description placed immediately under the heading context */}
               <p className="text-gray-200/90 text-base md:text-lg max-w-3xl">
                 {movie.description ||
                   "An immersive story set against a vast, mysterious ocean. Follow the journey through breathtaking landscapes and unforgettable characters."}
               </p>
 
-              {/* Controls: single horizontal row of icon-only buttons */}
+              {/* Controls: single horizontal row of icon-only buttons directly under description */}
               <div
                 className="mt-6 flex items-center gap-3 sm:gap-4 flex-wrap"
                 role="group"
                 aria-label="Player controls"
               >
-                <div {...playStartFocus} className="outline-none rounded-full">
+                <div {...playStartFocus} className="outline-none rounded-full" aria-label="Play from start container">
                   <IconPillButton
                     variant="primary"
                     ariaLabel={`Play ${movie.title} from the start`}
                     tooltip="Play from start"
                     onClick={() => window.alert?.("Play from the start")}
                   >
-                    {/* Play (filled triangle) */}
                     <span aria-hidden="true">▶</span>
                   </IconPillButton>
                 </div>
 
-                <div {...playCurrentFocus} className="outline-none rounded-full">
+                <div {...playCurrentFocus} className="outline-none rounded-full" aria-label="Resume container">
                   <IconPillButton
                     variant="secondary"
                     ariaLabel={`Play ${movie.title} from the current position`}
                     tooltip="Resume"
                     onClick={() => window.alert?.("Play from the current position")}
                   >
-                    {/* Play-circle */}
                     <span aria-hidden="true">⏯</span>
                   </IconPillButton>
                 </div>
 
-                <div {...stopFocus} className="outline-none rounded-full">
+                <div {...stopFocus} className="outline-none rounded-full" aria-label="Stop container">
                   <IconPillButton
                     variant="ghost"
                     ariaLabel={`Stop ${movie.title}`}
                     tooltip="Stop"
                     onClick={() => window.alert?.("Stop")}
                   >
-                    {/* Stop square */}
                     <span aria-hidden="true">⏹</span>
                   </IconPillButton>
                 </div>
 
-                <div {...langFocus} className="outline-none rounded-full">
+                <div {...langFocus} className="outline-none rounded-full" aria-label="Language settings container">
                   <IconPillButton
                     variant="secondary"
                     ariaLabel="Language settings"
                     tooltip="Language"
                     onClick={() => navigate("/settings")}
                   >
-                    {/* Globe */}
                     <span aria-hidden="true">🌐</span>
                   </IconPillButton>
                 </div>
