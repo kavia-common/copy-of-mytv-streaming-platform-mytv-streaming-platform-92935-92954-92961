@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo } from "react";
+import React, { useEffect, useMemo, useRef } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import NavBar from "../components/NavBar";
 import Footer from "../components/Footer";
@@ -34,13 +34,12 @@ export default function TitleDetail() {
     return movies.find((m) => m.id === targetId) || null;
   }, [id]);
 
-  // Declare focusable hooks unconditionally to satisfy React hook rules.
-  // Neighbors configured for a single horizontal row of 4 controls.
-  const { focusableProps: playStartFocus } = useFocusable({
+  // Focusable wrappers for the four icon-only buttons
+  const { focusableProps: playStartFocus, setFocus } = useFocusable({
     id: "detail-play-start",
     neighbors: { right: "detail-play-current" },
     onSelect: () => window.alert?.("Play from the start"),
-    defaultFocused: true, // initial focus on first control
+    defaultFocused: true,
   });
   const { focusableProps: playCurrentFocus } = useFocusable({
     id: "detail-play-current",
@@ -51,7 +50,7 @@ export default function TitleDetail() {
     id: "detail-back",
     neighbors: { left: "detail-play-current", right: "detail-lang" },
     onSelect: () => navigate(-1),
-    onBack: () => navigate(-1), // Back key support
+    onBack: () => navigate(-1),
   });
   const { focusableProps: langFocus } = useFocusable({
     id: "detail-lang",
@@ -59,8 +58,19 @@ export default function TitleDetail() {
     onSelect: () => navigate("/settings"),
   });
 
-  // No-op effect (first control gets default focus via useFocusable)
-  useEffect(() => {}, []);
+  // Ensure initial focus lands on the first control when the page mounts (extra guard).
+  const firstControlRef = useRef(null);
+  useEffect(() => {
+    const t = setTimeout(() => {
+      try {
+        // prefer focus manager to keep roving tabindex correct
+        setFocus?.("detail-play-start");
+        // additionally focus DOM for redundancy on Tizen
+        firstControlRef.current?.focus?.();
+      } catch {}
+    }, 50);
+    return () => clearTimeout(t);
+  }, [setFocus]);
 
   // Helper UI when not found
   const NotFound = () => (
@@ -88,14 +98,13 @@ export default function TitleDetail() {
     return <NotFound />;
   }
 
-  // Local keydown handler for the control containers to ensure Enter activates and Up/Down do not scroll.
+  // Local keydown handler for each control wrapper: prevent scroll on arrow keys and trigger on Enter.
   const controlKeyHandler = (e, onEnter) => {
     const key = e.key || "";
-    // Prevent page scroll on vertical arrows within control area
-    if (key === "ArrowUp" || key === "ArrowDown") {
-      e.preventDefault?.();
-      // Optional: could delegate to global focus manager if vertical neighbors are added in future
-      return;
+    const tag = (e.target && e.target.tagName) ? e.target.tagName.toLowerCase() : "";
+    const isTypingField = tag === "input" || tag === "textarea";
+    if (!isTypingField && (key === "ArrowUp" || key === "ArrowDown" || key === "ArrowLeft" || key === "ArrowRight")) {
+      e.preventDefault?.(); // stop page scrolling on TV/web
     }
     if (key === "Enter") {
       e.preventDefault?.();
@@ -159,8 +168,10 @@ export default function TitleDetail() {
                 {/* Play from start */}
                 <div
                   {...playStartFocus}
-                  className="outline-none rounded-full data-[focused=true]:ring-2 data-[focused=true]:ring-amber-400"
-                  aria-label="Play from start container"
+                  ref={firstControlRef}
+                  role="button"
+                  aria-label="Play from start"
+                  className="outline-none rounded-full focus-visible:ring-2 focus-visible:ring-amber-400 data-[focused=true]:ring-2 data-[focused=true]:ring-amber-400"
                   onKeyDown={(e) => controlKeyHandler(e, () => window.alert?.("Play from the start"))}
                 >
                   <IconPillButton
@@ -176,8 +187,9 @@ export default function TitleDetail() {
                 {/* Play from current */}
                 <div
                   {...playCurrentFocus}
-                  className="outline-none rounded-full data-[focused=true]:ring-2 data-[focused=true]:ring-amber-400"
-                  aria-label="Resume container"
+                  role="button"
+                  aria-label="Play from current position"
+                  className="outline-none rounded-full focus-visible:ring-2 focus-visible:ring-amber-400 data-[focused=true]:ring-2 data-[focused=true]:ring-amber-400"
                   onKeyDown={(e) => controlKeyHandler(e, () => window.alert?.("Play from the current position"))}
                 >
                   <IconPillButton
@@ -193,8 +205,9 @@ export default function TitleDetail() {
                 {/* Back */}
                 <div
                   {...backFocus}
-                  className="outline-none rounded-full data-[focused=true]:ring-2 data-[focused=true]:ring-amber-400"
-                  aria-label="Back container"
+                  role="button"
+                  aria-label="Back"
+                  className="outline-none rounded-full focus-visible:ring-2 focus-visible:ring-amber-400 data-[focused=true]:ring-2 data-[focused=true]:ring-amber-400"
                   onKeyDown={(e) => controlKeyHandler(e, () => navigate(-1))}
                 >
                   <IconPillButton
@@ -210,8 +223,9 @@ export default function TitleDetail() {
                 {/* Language */}
                 <div
                   {...langFocus}
-                  className="outline-none rounded-full data-[focused=true]:ring-2 data-[focused=true]:ring-amber-400"
-                  aria-label="Language settings container"
+                  role="button"
+                  aria-label="Language settings"
+                  className="outline-none rounded-full focus-visible:ring-2 focus-visible:ring-amber-400 data-[focused=true]:ring-2 data-[focused=true]:ring-amber-400"
                   onKeyDown={(e) => controlKeyHandler(e, () => navigate("/settings"))}
                 >
                   <IconPillButton
