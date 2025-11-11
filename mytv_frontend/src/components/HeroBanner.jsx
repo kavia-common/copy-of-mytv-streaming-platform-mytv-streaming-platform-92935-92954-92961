@@ -1,4 +1,5 @@
 import React, { useMemo, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import Button from "./Button";
 
 /**
@@ -20,6 +21,7 @@ export default function HeroBanner({ movie }) {
   // Hooks must always be called; guard their usage later if movie is null
   const [videoError, setVideoError] = useState(false);
   const videoRef = useRef(null);
+  const navigate = useNavigate();
 
   // pick poster from movie backdrop if available (handle undefined movie)
   const poster = movie?.backdrop || undefined;
@@ -136,7 +138,7 @@ export default function HeroBanner({ movie }) {
               variant="secondary"
               aria-label={`Play ${movie.title}`}
               className="px-5 py-2"
-              onClick={() => window.alert?.("Play")}
+              onClick={() => (movie?.id != null ? navigate(`/title/${movie.id}`) : window.alert?.("Play"))}
             >
               ▶ Play
             </Button>
@@ -144,7 +146,7 @@ export default function HeroBanner({ movie }) {
               variant="ghost"
               aria-label={`More info about ${movie.title}`}
               className="px-5 py-2"
-              onClick={() => window.alert?.("More Info")}
+              onClick={() => (movie?.id != null ? navigate(`/title/${movie.id}`) : window.alert?.("More Info"))}
             >
               ℹ More Info
             </Button>

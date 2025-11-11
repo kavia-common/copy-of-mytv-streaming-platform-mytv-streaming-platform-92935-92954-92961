@@ -6,6 +6,7 @@ import Splash from './pages/Splash';
 import Home from './pages/Home';
 import Login from './pages/Login';
 import Settings from './pages/Settings';
+import TitleDetail from './pages/TitleDetail';
 
 // Remote focus/keys
 import { FocusManagerProvider } from './remote/focus/FocusContext';
@@ -32,6 +33,7 @@ function App() {
             <Route path="/home" element={<Home />} />
             <Route path="/login" element={<Login />} />
             <Route path="/settings" element={<Settings />} />
+            <Route path="/title/:id" element={<TitleDetail />} />
             {/* Fallback to splash */}
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>

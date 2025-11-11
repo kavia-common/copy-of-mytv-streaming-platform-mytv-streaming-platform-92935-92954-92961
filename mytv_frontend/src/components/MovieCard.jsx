@@ -1,4 +1,5 @@
 import React, { useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 import { useFocusable } from "../remote/focus/FocusContext";
 
 /**
@@ -11,14 +12,19 @@ import { useFocusable } from "../remote/focus/FocusContext";
  * - Accessible: focus-visible mirrors hover state without jitter.
  */
 export default function MovieCard({ movie, focusId, neighbors, onSelect }) {
+  const navigate = useNavigate();
   const cardId = focusId || `movie-${movie?.id}`;
   const handleSelect = useMemo(
     () =>
       onSelect ||
       (() => {
-        window.alert?.(`Selected: ${movie?.title}`);
+        if (movie?.id != null) {
+          navigate(`/title/${movie.id}`);
+        } else {
+          window.alert?.(`Selected: ${movie?.title}`);
+        }
       }),
-    [onSelect, movie?.title]
+    [onSelect, movie?.id, movie?.title, navigate]
   );
 
   const { focusableProps, focused } = useFocusable({
