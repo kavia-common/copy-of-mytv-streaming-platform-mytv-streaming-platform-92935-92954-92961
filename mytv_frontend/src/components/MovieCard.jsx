@@ -10,10 +10,15 @@ import { useFocusable } from "../remote/focus/FocusContext";
  * - Smooth GPU-accelerated hover/focus transitions; elevated shadow + subtle scale.
  * - Delayed preview panel shows title, match rating and badges without shifting layout.
  * - Accessible: focus-visible mirrors hover state without jitter.
+ * Behavior:
+ * - Click or Enter/OK navigates to TitleDetail (/title/:id) with correct id.
+ * - Integrates with FocusManager for remote arrows/OK and roving tabindex.
  */
 export default function MovieCard({ movie, focusId, neighbors, onSelect }) {
   const navigate = useNavigate();
   const cardId = focusId || `movie-${movie?.id}`;
+
+  // Standardized select behavior: always navigate to TitleDetail when possible.
   const handleSelect = useMemo(
     () =>
       onSelect ||
@@ -21,7 +26,7 @@ export default function MovieCard({ movie, focusId, neighbors, onSelect }) {
         if (movie?.id != null) {
           navigate(`/title/${movie.id}`);
         } else {
-          window.alert?.(`Selected: ${movie?.title}`);
+          window.alert?.(`Selected: ${movie?.title || "Unknown title"}`);
         }
       }),
     [onSelect, movie?.id, movie?.title, navigate]
@@ -37,9 +42,11 @@ export default function MovieCard({ movie, focusId, neighbors, onSelect }) {
     <div
       {...focusableProps}
       role="button"
-      aria-label={`${movie?.title || "Movie"} card`}
+      aria-label={`${movie?.title || "Movie"} card. Press Enter to open details`}
+      onClick={handleSelect}
       onKeyDown={(e) => {
-        if (e.key === "Enter" || e.keyCode === 13) {
+        const key = e.key || "";
+        if (key === "Enter" || e.keyCode === 13) {
           e.preventDefault();
           handleSelect();
         }
@@ -78,7 +85,9 @@ export default function MovieCard({ movie, focusId, neighbors, onSelect }) {
           <div className="m-2 rounded-md bg-black/75 px-2 py-1.5 text-[11px] text-gray-200 shadow-soft ring-1 ring-white/10">
             <div className="flex items-center justify-between gap-2">
               <span className="font-semibold truncate">{movie.title}</span>
-              <span className="whitespace-nowrap text-amber-300">{movie.rating ? `${movie.rating} Match` : "90% Match"}</span>
+              <span className="whitespace-nowrap text-amber-300">
+                {movie.rating ? `${movie.rating} Match` : "90% Match"}
+              </span>
             </div>
             <div className="mt-0.5 flex items-center gap-2 text-[10px] text-gray-300/90">
               <span>{movie.year || "2024"}</span>
@@ -91,7 +100,9 @@ export default function MovieCard({ movie, focusId, neighbors, onSelect }) {
       </div>
 
       {/* Title below card - compact single line */}
-      <div className="mt-1 text-[13px] font-medium text-gray-200 line-clamp-1 will-opacity motion-opacity">{movie.title}</div>
+      <div className="mt-1 text-[13px] font-medium text-gray-200 line-clamp-1 will-opacity motion-opacity">
+        {movie.title}
+      </div>
     </div>
   );
 }
