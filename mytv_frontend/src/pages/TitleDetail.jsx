@@ -12,9 +12,10 @@ import { useFocusable } from "../remote/focus/FocusContext";
  * Title detail page at /title/:id displaying:
  * - Full-bleed hero background using the clicked card's image
  * - Movie name at the top, a concise description
- * - Four pill-shaped controls: Play from the start, Play from the current, Stop, Language settings
+ * - Four control actions rendered as icon-only buttons in a single horizontal row:
+ *   Play from start, Play from current, Stop, Language settings
  * - Handles missing/invalid ids gracefully with a friendly message and link back to Home
- * - TV remote focus support with pill buttons focusable; responsive layout
+ * - TV remote focus support with focusable pill icon buttons; responsive layout and keyboard focus
  */
 export default function TitleDetail() {
   const { id } = useParams();
@@ -29,23 +30,23 @@ export default function TitleDetail() {
   // Declare focusable hooks unconditionally to satisfy React hook rules
   const { focusableProps: playStartFocus } = useFocusable({
     id: "detail-play-start",
-    neighbors: { right: "detail-play-current", down: "detail-lang" },
+    neighbors: { right: "detail-play-current" },
     onSelect: () => window.alert?.("Play from the start"),
     defaultFocused: true,
   });
   const { focusableProps: playCurrentFocus } = useFocusable({
     id: "detail-play-current",
-    neighbors: { left: "detail-play-start", right: "detail-stop", down: "detail-lang" },
+    neighbors: { left: "detail-play-start", right: "detail-stop" },
     onSelect: () => window.alert?.("Play from the current position"),
   });
   const { focusableProps: stopFocus } = useFocusable({
     id: "detail-stop",
-    neighbors: { left: "detail-play-current", down: "detail-lang" },
+    neighbors: { left: "detail-play-current", right: "detail-lang" },
     onSelect: () => window.alert?.("Stop playback"),
   });
   const { focusableProps: langFocus } = useFocusable({
     id: "detail-lang",
-    neighbors: { up: "detail-play-start" },
+    neighbors: { left: "detail-stop" },
     onSelect: () => navigate("/settings"),
   });
 
@@ -124,46 +125,58 @@ export default function TitleDetail() {
                   "An immersive story set against a vast, mysterious ocean. Follow the journey through breathtaking landscapes and unforgettable characters."}
               </p>
 
-              {/* Controls */}
-              <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+              {/* Controls: single horizontal row of icon-only buttons */}
+              <div
+                className="mt-6 flex items-center gap-3 sm:gap-4 flex-wrap"
+                role="group"
+                aria-label="Player controls"
+              >
                 <div {...playStartFocus} className="outline-none rounded-full">
-                  <PillButton
+                  <IconPillButton
                     variant="primary"
                     ariaLabel={`Play ${movie.title} from the start`}
+                    tooltip="Play from start"
                     onClick={() => window.alert?.("Play from the start")}
                   >
-                    ▶ Play from the start
-                  </PillButton>
+                    {/* Play (filled triangle) */}
+                    <span aria-hidden="true">▶</span>
+                  </IconPillButton>
                 </div>
 
                 <div {...playCurrentFocus} className="outline-none rounded-full">
-                  <PillButton
+                  <IconPillButton
                     variant="secondary"
                     ariaLabel={`Play ${movie.title} from the current position`}
+                    tooltip="Resume"
                     onClick={() => window.alert?.("Play from the current position")}
                   >
-                    ⏯ Play from the current
-                  </PillButton>
+                    {/* Play-circle */}
+                    <span aria-hidden="true">⏯</span>
+                  </IconPillButton>
                 </div>
 
                 <div {...stopFocus} className="outline-none rounded-full">
-                  <PillButton
+                  <IconPillButton
                     variant="ghost"
                     ariaLabel={`Stop ${movie.title}`}
+                    tooltip="Stop"
                     onClick={() => window.alert?.("Stop")}
                   >
-                    ⏹ Stop
-                  </PillButton>
+                    {/* Stop square */}
+                    <span aria-hidden="true">⏹</span>
+                  </IconPillButton>
                 </div>
 
                 <div {...langFocus} className="outline-none rounded-full">
-                  <PillButton
+                  <IconPillButton
                     variant="secondary"
                     ariaLabel="Language settings"
+                    tooltip="Language"
                     onClick={() => navigate("/settings")}
                   >
-                    🌐 Language settings
-                  </PillButton>
+                    {/* Globe */}
+                    <span aria-hidden="true">🌐</span>
+                  </IconPillButton>
                 </div>
               </div>
             </div>
@@ -184,12 +197,13 @@ export default function TitleDetail() {
 
 /**
  * PUBLIC_INTERFACE
- * PillButton
- * Ocean Professional pill-like button with hover/focus styles and variants.
+ * IconPillButton
+ * Ocean Professional pill-like icon-only button with hover/focus styles and variants.
+ * Accessible via aria-label; optionally shows a title tooltip on hover-capable devices.
  */
-function PillButton({ children, variant = "primary", ariaLabel, onClick }) {
+function IconPillButton({ children, variant = "primary", ariaLabel, onClick, tooltip }) {
   const base =
-    "w-full inline-flex items-center justify-center rounded-full px-5 py-2.5 text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-offset-0";
+    "inline-flex items-center justify-center rounded-full h-10 w-10 md:h-11 md:w-11 text-base md:text-lg transition-colors focus:outline-none focus:ring-2 focus:ring-offset-0";
   const styles = {
     primary: "bg-ocean-primary text-white hover:bg-blue-600 focus:ring-blue-400",
     secondary: "bg-ocean-secondary text-slate-900 hover:bg-amber-400 focus:ring-amber-300",
@@ -199,6 +213,7 @@ function PillButton({ children, variant = "primary", ariaLabel, onClick }) {
     <button
       type="button"
       aria-label={ariaLabel}
+      title={tooltip || undefined}
       onClick={onClick}
       className={`${base} ${styles[variant]}`}
     >
