@@ -16,6 +16,13 @@ import { useFocusable } from "../remote/focus/FocusContext";
  *   Play from start, Play from current, Back, Language settings
  * - Handles missing/invalid ids gracefully with a friendly message and link back to Home
  * - TV remote focus support with focusable pill icon buttons; responsive layout and keyboard focus
+ *
+ * Remote integration:
+ * - Roving tabindex via useFocusable
+ * - ArrowLeft/Right move between the four controls; Up/Down prevented from causing scroll
+ * - Enter/OK triggers actions; Back key navigates to previous screen via navigate(-1)
+ * - Initial focus lands on the first control (defaultFocused)
+ * - Guards avoid interfering with text inputs/desktop typing (handled globally in RemoteKeyHandler)
  */
 export default function TitleDetail() {
   const { id } = useParams();
@@ -27,12 +34,13 @@ export default function TitleDetail() {
     return movies.find((m) => m.id === targetId) || null;
   }, [id]);
 
-  // Declare focusable hooks unconditionally to satisfy React hook rules
+  // Declare focusable hooks unconditionally to satisfy React hook rules.
+  // Neighbors configured for a single horizontal row of 4 controls.
   const { focusableProps: playStartFocus } = useFocusable({
     id: "detail-play-start",
     neighbors: { right: "detail-play-current" },
     onSelect: () => window.alert?.("Play from the start"),
-    defaultFocused: true,
+    defaultFocused: true, // initial focus on first control
   });
   const { focusableProps: playCurrentFocus } = useFocusable({
     id: "detail-play-current",
@@ -43,7 +51,7 @@ export default function TitleDetail() {
     id: "detail-back",
     neighbors: { left: "detail-play-current", right: "detail-lang" },
     onSelect: () => navigate(-1),
-    onBack: () => navigate(-1),
+    onBack: () => navigate(-1), // Back key support
   });
   const { focusableProps: langFocus } = useFocusable({
     id: "detail-lang",
@@ -51,7 +59,7 @@ export default function TitleDetail() {
     onSelect: () => navigate("/settings"),
   });
 
-  // Default focus no-op; first control has defaultFocused
+  // No-op effect (first control gets default focus via useFocusable)
   useEffect(() => {}, []);
 
   // Helper UI when not found
@@ -79,6 +87,21 @@ export default function TitleDetail() {
   if (!movie) {
     return <NotFound />;
   }
+
+  // Local keydown handler for the control containers to ensure Enter activates and Up/Down do not scroll.
+  const controlKeyHandler = (e, onEnter) => {
+    const key = e.key || "";
+    // Prevent page scroll on vertical arrows within control area
+    if (key === "ArrowUp" || key === "ArrowDown") {
+      e.preventDefault?.();
+      // Optional: could delegate to global focus manager if vertical neighbors are added in future
+      return;
+    }
+    if (key === "Enter") {
+      e.preventDefault?.();
+      onEnter?.();
+    }
+  };
 
   return (
     <div className="min-h-screen bg-[color:var(--ocean-bg)] flex flex-col">
@@ -133,16 +156,12 @@ export default function TitleDetail() {
                 role="group"
                 aria-label="Player controls"
               >
+                {/* Play from start */}
                 <div
                   {...playStartFocus}
-                  className="outline-none rounded-full"
+                  className="outline-none rounded-full data-[focused=true]:ring-2 data-[focused=true]:ring-amber-400"
                   aria-label="Play from start container"
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" || e.keyCode === 13) {
-                      e.preventDefault();
-                      window.alert?.("Play from the start");
-                    }
-                  }}
+                  onKeyDown={(e) => controlKeyHandler(e, () => window.alert?.("Play from the start"))}
                 >
                   <IconPillButton
                     variant="primary"
@@ -154,16 +173,12 @@ export default function TitleDetail() {
                   </IconPillButton>
                 </div>
 
+                {/* Play from current */}
                 <div
                   {...playCurrentFocus}
-                  className="outline-none rounded-full"
+                  className="outline-none rounded-full data-[focused=true]:ring-2 data-[focused=true]:ring-amber-400"
                   aria-label="Resume container"
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" || e.keyCode === 13) {
-                      e.preventDefault();
-                      window.alert?.("Play from the current position");
-                    }
-                  }}
+                  onKeyDown={(e) => controlKeyHandler(e, () => window.alert?.("Play from the current position"))}
                 >
                   <IconPillButton
                     variant="secondary"
@@ -175,16 +190,12 @@ export default function TitleDetail() {
                   </IconPillButton>
                 </div>
 
+                {/* Back */}
                 <div
                   {...backFocus}
-                  className="outline-none rounded-full"
+                  className="outline-none rounded-full data-[focused=true]:ring-2 data-[focused=true]:ring-amber-400"
                   aria-label="Back container"
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" || e.keyCode === 13) {
-                      e.preventDefault();
-                      navigate(-1);
-                    }
-                  }}
+                  onKeyDown={(e) => controlKeyHandler(e, () => navigate(-1))}
                 >
                   <IconPillButton
                     variant="ghost"
@@ -196,16 +207,12 @@ export default function TitleDetail() {
                   </IconPillButton>
                 </div>
 
+                {/* Language */}
                 <div
                   {...langFocus}
-                  className="outline-none rounded-full"
+                  className="outline-none rounded-full data-[focused=true]:ring-2 data-[focused=true]:ring-amber-400"
                   aria-label="Language settings container"
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" || e.keyCode === 13) {
-                      e.preventDefault();
-                      navigate("/settings");
-                    }
-                  }}
+                  onKeyDown={(e) => controlKeyHandler(e, () => navigate("/settings"))}
                 >
                   <IconPillButton
                     variant="secondary"
@@ -219,7 +226,7 @@ export default function TitleDetail() {
               </div>
             </div>
 
-            {/* Back link (mobile-friendly) */}
+            {/* Back link (desktop/mobile click back-up) */}
             <div className="mt-4">
               <Link to="/home" className="text-sm text-gray-300 hover:text-white">
                 ← Back to Home
