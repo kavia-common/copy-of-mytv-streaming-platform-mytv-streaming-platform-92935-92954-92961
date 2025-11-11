@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import shaka from "shaka-player";
 import { getKeyFromEvent } from "../remote/tizen-keys";
 
@@ -7,71 +7,147 @@ import { getKeyFromEvent } from "../remote/tizen-keys";
  * PlayerOverlay
  * Full-screen overlay that hosts a minimal video element and initializes Shaka Player.
  * - Props:
- *   - src: string (DASH or HLS URL) Placeholder is acceptable; user will provide real stream later.
+ *   - src: string (manifest or media URL)
+ *   - type: 'dash' | 'hls' | undefined (optional hint from API; used to set Shaka config)
  *   - onClose: function to be called when overlay should close (e.g., Back or close button).
  *   - title: optional title to show in the top-left overlay chrome.
  * - Behavior:
- *   - On mount, creates a Shaka.Player on the <video> element and attempts to load src.
- *   - Logs basic errors to console and displays a lightweight toast banner on failure.
+ *   - Attaches Shaka to the <video> element before calling player.load(url).
+ *   - Sets manifest config based on type (DASH/HLS) when provided; attempts auto-detect otherwise.
+ *   - Handles autoplay policy by attempting videoEl.play() after load; if blocked, waits for user Enter.
+ *   - On Shaka failure, gracefully falls back to native <video> playback for simple MP4 or HLS.
  *   - Remote keys inside overlay:
  *     - Enter toggles play/pause.
  *     - Back (Escape/Backspace/10009) exits the overlay (calls onClose).
- *   - Click on the top-left back button also exits overlay.
  */
-export default function PlayerOverlay({ src, onClose, title = "Now Playing" }) {
+export default function PlayerOverlay({ src, type, onClose, title = "Now Playing" }) {
   const videoRef = useRef(null);
   const playerRef = useRef(null);
   const [ready, setReady] = useState(false);
   const [errorText, setErrorText] = useState("");
+  const [usingNative, setUsingNative] = useState(false);
 
-  // Initialize Shaka on mount
+  // Helper: Decide mime/extension heuristics for native fallback and Shaka hints
+  const urlInfo = useMemo(() => {
+    const u = typeof src === "string" ? src : "";
+    const lower = u.toLowerCase();
+    const isDash = type === "dash" || lower.includes(".mpd") || lower.includes("format=dash");
+    const isHls = type === "hls" || lower.includes(".m3u8") || lower.includes("format=hls");
+    const isMp4 = lower.endsWith(".mp4") || lower.includes("video/mp4");
+    return { isDash, isHls, isMp4 };
+  }, [src, type]);
+
   useEffect(() => {
     let mounted = true;
 
-    async function init() {
+    async function initShaka() {
+      const videoEl = videoRef.current;
+      if (!videoEl) return;
+
+      // Prepare video element and attributes
+      videoEl.controls = false;
+      videoEl.autoplay = false; // we'll call play() explicitly after load
+      videoEl.playsInline = true;
+      // Do not force muted here; let user gesture trigger play if policy blocks autoplay.
+
+      // Always destroy any prior instance before creating a new one
       try {
-        if (!shaka.Player.isBrowserSupported()) {
-          const msg = "Shaka: Browser not supported.";
-          console.error(msg);
-          if (mounted) setErrorText(msg);
-          return;
+        await playerRef.current?.destroy?.();
+      } catch {}
+      playerRef.current = null;
+
+      if (!shaka.Player.isBrowserSupported()) {
+        const msg = "Shaka: Browser not supported. Falling back to native playback.";
+        console.warn(msg);
+        if (mounted) {
+          setErrorText("");
+          await playNatively(videoEl);
         }
+        return;
+      }
 
-        const videoEl = videoRef.current;
-        if (!videoEl) return;
+      // Create and attach player before loading content
+      const player = new shaka.Player();
+      playerRef.current = player;
+      player.addEventListener("error", (evt) => {
+        const detail = evt?.detail || evt;
+        console.error("Shaka error event", detail);
+        setErrorText(detail?.message || "Playback error");
+      });
 
-        // Minimal UI: hide native controls; allow remote to toggle play/pause
-        videoEl.controls = false;
-        videoEl.autoplay = true;
-        videoEl.playsInline = true;
-        videoEl.muted = false;
+      try {
+        // Attach to the video element before load, as recommended
+        await player.attach(videoEl);
 
-        const player = new shaka.Player(videoEl);
-        playerRef.current = player;
+        // Apply config based on manifest type hints
+        const cfg = {
+          streaming: {
+            bufferingGoal: 10,
+          },
+        };
+        if (urlInfo.isHls) {
+          // Enable robust HLS handling config; Shaka uses transmuxing when needed
+          cfg.manifest = cfg.manifest || {};
+          cfg.manifest.hls = cfg.manifest.hls || {};
+          cfg.manifest.hls.ignoreTextStreamFailures = true;
+        } else if (urlInfo.isDash) {
+          cfg.manifest = cfg.manifest || {};
+          cfg.manifest.dash = cfg.manifest.dash || {};
+          // Defaults are usually fine; keep minimal config to avoid DRM assumptions
+        }
+        player.configure(cfg);
 
-        player.addEventListener("error", (evt) => {
-          const detail = evt?.detail || evt;
-          console.error("Shaka error", detail);
-          setErrorText(detail?.message || "Playback error");
+        console.info("[PlayerOverlay] Loading with Shaka", {
+          src,
+          type,
+          config: cfg,
         });
 
-        // Try loading the provided src; handle both DASH and HLS (Shaka supports both with transmuxing where available).
+        // Load the manifest/media URL
         await player.load(src);
-        // Attempt to start playing
+
+        // Try to start playing explicitly (autoplay policies)
         try {
           await videoEl.play();
         } catch (e) {
-          // Autoplay may fail if not allowed; we keep overlay open anyway
-          console.warn("Autoplay blocked; waiting for user action to play.", e);
+          console.warn("Autoplay blocked; awaiting user Enter to start.", e?.message || e);
         }
-        if (mounted) setReady(true);
+
+        if (mounted) {
+          setReady(true);
+          setErrorText("");
+          setUsingNative(false);
+        }
       } catch (e) {
-        console.error("Shaka init/load failed:", e);
-        if (mounted) setErrorText(e?.message || "Failed to load stream");
+        console.error("Shaka initialization/load failed, attempting native fallback…", e);
+        if (mounted) {
+          await playNatively(videoEl);
+        }
       }
     }
 
-    init();
+    async function playNatively(videoEl) {
+      try {
+        // Configure native video element for direct playback of MP4 or HLS (where supported)
+        setUsingNative(true);
+        videoEl.controls = true; // enable controls for native fallback
+        videoEl.src = src;
+        await videoEl.load?.();
+        try {
+          await videoEl.play?.();
+        } catch (e) {
+          console.warn("Native autoplay blocked; waiting for user action.", e?.message || e);
+          // No error shown; user can press Enter to trigger play
+        }
+        setReady(true);
+        setErrorText("");
+      } catch (e) {
+        console.error("Native playback also failed:", e);
+        setErrorText("Failed to start playback. Please try again.");
+      }
+    }
+
+    initShaka();
 
     return () => {
       mounted = false;
@@ -79,8 +155,16 @@ export default function PlayerOverlay({ src, onClose, title = "Now Playing" }) {
         playerRef.current?.destroy?.();
       } catch {}
       playerRef.current = null;
+      const v = videoRef.current;
+      if (v) {
+        try {
+          v.pause?.();
+          v.removeAttribute?.("src");
+          v.load?.();
+        } catch {}
+      }
     };
-  }, [src]);
+  }, [src, urlInfo.isDash, urlInfo.isHls, type]);
 
   // Remote key handling within overlay
   const onKeyDown = useCallback(
@@ -98,7 +182,10 @@ export default function PlayerOverlay({ src, onClose, title = "Now Playing" }) {
         const v = videoRef.current;
         if (!v) return;
         if (v.paused) {
-          v.play?.();
+          v.play?.().catch((err) => {
+            console.warn("User-triggered play failed:", err);
+            setErrorText("Unable to start playback. Please try again.");
+          });
         } else {
           v.pause?.();
         }
@@ -133,7 +220,12 @@ export default function PlayerOverlay({ src, onClose, title = "Now Playing" }) {
           <span aria-hidden="true">←</span>
           <span className="hidden sm:inline">Back</span>
         </button>
-        <div className="text-sm md:text-base opacity-90">{title}</div>
+        <div className="text-sm md:text-base opacity-90">
+          {title}
+          <span className="ml-2 text-xs text-white/60">
+            {usingNative ? "(Native)" : "(Shaka)"}
+          </span>
+        </div>
         <div className="opacity-0"> {/* spacer to balance layout */} </div>
       </div>
 
@@ -143,6 +235,7 @@ export default function PlayerOverlay({ src, onClose, title = "Now Playing" }) {
           ref={videoRef}
           className="w-full h-full object-contain bg-black"
           poster=""
+          // For better native HLS support in Safari, we can add type hints via <source> if needed.
         />
       </div>
 
@@ -153,7 +246,7 @@ export default function PlayerOverlay({ src, onClose, title = "Now Playing" }) {
         </div>
       )}
 
-      {/* Minimal help hint (optional) */}
+      {/* Minimal help hint */}
       {!errorText && (
         <div className="absolute bottom-3 right-4 text-xs text-white/80 bg-white/10 rounded px-2 py-1 ring-1 ring-white/10">
           Enter: Play/Pause • Back: Exit
@@ -162,7 +255,9 @@ export default function PlayerOverlay({ src, onClose, title = "Now Playing" }) {
 
       {/* Ready indicator subtle fade-in border (just for polish) */}
       <div
-        className={`pointer-events-none absolute inset-0 transition-opacity duration-500 ${ready ? "opacity-0" : "opacity-100"}`}
+        className={`pointer-events-none absolute inset-0 transition-opacity duration-500 ${
+          ready ? "opacity-0" : "opacity-100"
+        }`}
         aria-hidden="true"
       />
     </div>

@@ -41,6 +41,7 @@ export default function TitleDetail() {
   const [streamUrl, setStreamUrl] = useState("");
   const [loadingPlay, setLoadingPlay] = useState(false);
   const [playError, setPlayError] = useState("");
+  const [streamType, setStreamType] = useState(undefined); // 'dash' | 'hls' | undefined
 
   const closePlayer = () => setShowPlayer(false);
 
@@ -128,15 +129,17 @@ export default function TitleDetail() {
     setPlayError("");
     setLoadingPlay(true);
     setStreamUrl("");
+    setStreamType(undefined);
     const ctrl = new AbortController();
     try {
       const { url, type, raw } = await getPlayStream({ signal: ctrl.signal });
-      console.info("Play URL fetched successfully", { url, type, raw });
+      console.info("[TitleDetail] Play API success", { url, type, raw });
       setStreamUrl(url);
+      setStreamType(type); // pass along 'dash' or 'hls' when available
       setShowPlayer(true);
     } catch (e) {
       // Surface helpful diagnostics and show a friendly message
-      console.error("Failed to fetch play URL:", {
+      console.error("[TitleDetail] Play API error", {
         message: e?.message,
         stack: e?.stack,
       });
@@ -316,6 +319,7 @@ export default function TitleDetail() {
       {showPlayer && streamUrl && (
         <PlayerOverlay
           src={streamUrl}
+          type={streamType}
           title={movie?.title || "Now Playing"}
           onClose={() => {
             closePlayer();
