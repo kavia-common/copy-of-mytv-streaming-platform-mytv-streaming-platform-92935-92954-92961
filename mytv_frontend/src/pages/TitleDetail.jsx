@@ -6,6 +6,7 @@ import Button from "../components/Button";
 import PlayerOverlay from "../components/PlayerOverlay";
 import { movies } from "../data/movies";
 import { useFocusable } from "../remote/focus/FocusContext";
+import { getPlayStream } from "../api/client";
 
 /**
  * PUBLIC_INTERFACE
@@ -35,27 +36,26 @@ export default function TitleDetail() {
     return movies.find((m) => m.id === targetId) || null;
   }, [id]);
 
-  // Player overlay state
+  // Player overlay state and stream URL
   const [showPlayer, setShowPlayer] = useState(false);
-  // Placeholder stream (DASH/HLS). User will provide later.
-  const PLACEHOLDER_STREAM =
-    "https://storage.googleapis.com/shaka-demo-assets/angel-one/dash.mpd";
+  const [streamUrl, setStreamUrl] = useState("");
+  const [loadingPlay, setLoadingPlay] = useState(false);
+  const [playError, setPlayError] = useState("");
 
-  const openPlayer = () => setShowPlayer(true);
   const closePlayer = () => setShowPlayer(false);
 
   // Focusable wrappers for the four icon-only buttons
   const { focusableProps: playStartFocus, setFocus } = useFocusable({
     id: "detail-play-start",
     neighbors: { right: "detail-play-current" },
-    onSelect: () => openPlayer(),
+    onSelect: () => handlePlayFromStart(),
     defaultFocused: true,
   });
   const { focusableProps: playCurrentFocus } = useFocusable({
     id: "detail-play-current",
     neighbors: { left: "detail-play-start", right: "detail-back" },
-    // Stub: reuse overlay; no resume logic yet
-    onSelect: () => openPlayer(),
+    // Stub: call same play for now; resume logic to be added later
+    onSelect: () => handlePlayFromCurrent(),
   });
   const { focusableProps: backFocus } = useFocusable({
     id: "detail-back",
@@ -123,6 +123,30 @@ export default function TitleDetail() {
     }
   };
 
+  // Fetch and play from start: calls mock API, shows spinner, handles errors gracefully.
+  async function handlePlayFromStart() {
+    setPlayError("");
+    setLoadingPlay(true);
+    setStreamUrl("");
+    const ctrl = new AbortController();
+    try {
+      const { url } = await getPlayStream({ signal: ctrl.signal });
+      setStreamUrl(url);
+      setShowPlayer(true);
+    } catch (e) {
+      console.error("Failed to fetch play URL:", e);
+      setPlayError(e?.message || "Failed to start playback. Please try again.");
+    } finally {
+      setLoadingPlay(false);
+    }
+  }
+
+  // Stub for "play from current": later will include resume position; for now reuses same behavior but keeps label stubbed
+  async function handlePlayFromCurrent() {
+    // Future: pass position/duration once resume API exists.
+    await handlePlayFromStart();
+  }
+
   return (
     <div className="min-h-screen bg-[color:var(--ocean-bg)] flex flex-col">
       <NavBar />
@@ -170,9 +194,24 @@ export default function TitleDetail() {
                   "An immersive story set against a vast, mysterious ocean. Follow the journey through breathtaking landscapes and unforgettable characters."}
               </p>
 
+              {/* Loading and error states for play action */}
+              <div className="mt-3 min-h-[1.25rem]">
+                {loadingPlay && (
+                  <div className="inline-flex items-center gap-2 text-sm text-gray-200">
+                    <span className="h-4 w-4 inline-block rounded-full border-2 border-white/40 border-t-white animate-spin" aria-hidden="true" />
+                    <span>Preparing your stream…</span>
+                  </div>
+                )}
+                {!loadingPlay && playError && (
+                  <div className="rounded-md bg-red-500/10 p-2 text-sm text-red-300 ring-1 ring-red-500/30">
+                    {playError}
+                  </div>
+                )}
+              </div>
+
               {/* Controls: single horizontal row of icon-only buttons directly under description */}
               <div
-                className="mt-6 flex items-center gap-3 sm:gap-4 flex-wrap"
+                className="mt-4 flex items-center gap-3 sm:gap-4 flex-wrap"
                 role="group"
                 aria-label="Player controls"
               >
@@ -183,31 +222,31 @@ export default function TitleDetail() {
                   role="button"
                   aria-label="Play from start"
                   className="outline-none rounded-full focus-visible:ring-2 focus-visible:ring-amber-400 data-[focused=true]:ring-2 data-[focused=true]:ring-amber-400"
-                  onKeyDown={(e) => controlKeyHandler(e, () => openPlayer())}
+                  onKeyDown={(e) => controlKeyHandler(e, () => handlePlayFromStart())}
                 >
                   <IconPillButton
                     variant="primary"
                     ariaLabel={`Play ${movie.title} from the start`}
                     tooltip="Play from start"
-                    onClick={openPlayer}
+                    onClick={handlePlayFromStart}
                   >
                     <span aria-hidden="true">▶</span>
                   </IconPillButton>
                 </div>
 
-                {/* Play from current */}
+                {/* Play from current (stub) */}
                 <div
                   {...playCurrentFocus}
                   role="button"
                   aria-label="Play from current position"
                   className="outline-none rounded-full focus-visible:ring-2 focus-visible:ring-amber-400 data-[focused=true]:ring-2 data-[focused=true]:ring-amber-400"
-                  onKeyDown={(e) => controlKeyHandler(e, () => openPlayer())}
+                  onKeyDown={(e) => controlKeyHandler(e, () => handlePlayFromCurrent())}
                 >
                   <IconPillButton
                     variant="secondary"
                     ariaLabel={`Play ${movie.title} from the current position`}
-                    tooltip="Resume"
-                    onClick={openPlayer}
+                    tooltip="Resume (stub)"
+                    onClick={handlePlayFromCurrent}
                   >
                     <span aria-hidden="true">⏯</span>
                   </IconPillButton>
@@ -261,9 +300,9 @@ export default function TitleDetail() {
         </section>
       </main>
       {/* Player overlay mounted when showPlayer is true */}
-      {showPlayer && (
+      {showPlayer && streamUrl && (
         <PlayerOverlay
-          src={PLACEHOLDER_STREAM}
+          src={streamUrl}
           title={movie?.title || "Now Playing"}
           onClose={() => {
             closePlayer();
