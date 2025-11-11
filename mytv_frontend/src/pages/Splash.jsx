@@ -1,12 +1,11 @@
 import React, { useEffect } from "react";
-import { useNavigate, Link } from "react-router-dom";
-import Button from "../components/Button";
-import { useFocusable } from "../remote/focus/FocusContext";
+import { useNavigate } from "react-router-dom";
 
 /**
  * PUBLIC_INTERFACE
  * Splash
- * Minimalist dark splash with animated brand fade-in and CTA to continue.
+ * Minimalist dark splash with animated brand fade-in. No buttons/CTAs are rendered.
+ * Auto-redirects to /home shortly after mount, preserving existing navigation flow.
  */
 export default function Splash() {
   const navigate = useNavigate();
@@ -15,18 +14,6 @@ export default function Splash() {
     const t = setTimeout(() => navigate("/home"), 1600);
     return () => clearTimeout(t);
   }, [navigate]);
-
-  const { focusableProps: enterProps } = useFocusable({
-    id: "splash-enter",
-    onSelect: () => navigate("/home"),
-    defaultFocused: true,
-  });
-
-  const { focusableProps: loginProps } = useFocusable({
-    id: "splash-login",
-    onSelect: () => navigate("/login"),
-    neighbors: { left: "splash-enter" },
-  });
 
   return (
     <div className="min-h-screen flex flex-col justify-between relative overflow-hidden bg-[color:var(--ocean-bg)]">
@@ -42,16 +29,7 @@ export default function Splash() {
             <span className="text-ocean-secondary">TV</span>
           </h1>
           <p className="mt-3 text-gray-300">Stream a world of stories. Anywhere.</p>
-          <div className="mt-6 flex items-center justify-center gap-4">
-            <span {...enterProps}>
-              <Button onClick={() => navigate("/home")} variant="primary" className="px-6 py-2">
-                Continue
-              </Button>
-            </span>
-            <Link to="/login" className="text-sm text-gray-300 hover:text-white underline underline-offset-4" {...loginProps}>
-              Login
-            </Link>
-          </div>
+          {/* Intentionally no CTAs/buttons to satisfy requirement. Layout remains centered and balanced. */}
         </div>
       </div>
     </div>
