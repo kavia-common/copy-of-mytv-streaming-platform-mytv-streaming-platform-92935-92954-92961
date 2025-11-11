@@ -6,7 +6,6 @@ import Button from "../components/Button";
 import PlayerOverlay from "../components/PlayerOverlay";
 import { movies } from "../data/movies";
 import { useFocusable } from "../remote/focus/FocusContext";
-import { getPlayStream } from "../api/client";
 
 /**
  * PUBLIC_INTERFACE
@@ -39,11 +38,19 @@ export default function TitleDetail() {
   // Player overlay state and stream URL
   const [showPlayer, setShowPlayer] = useState(false);
   const [streamUrl, setStreamUrl] = useState("");
-  const [loadingPlay, setLoadingPlay] = useState(false);
-  const [playError, setPlayError] = useState("");
   const [streamType, setStreamType] = useState(undefined); // 'dash' | 'hls' | undefined
 
   const closePlayer = () => setShowPlayer(false);
+
+  // Safe default stream: use Shaka sample DASH content
+  // This avoids any network/API prefetch and deterministically opens Shaka overlay.
+  const DEFAULT_STREAM = useMemo(
+    () => ({
+      url: "https://storage.googleapis.com/shaka-demo-assets/angel-one/dash.mpd",
+      type: "dash",
+    }),
+    []
+  );
 
   // Focusable wrappers for the four icon-only buttons
   const { focusableProps: playStartFocus, setFocus } = useFocusable({
@@ -124,43 +131,16 @@ export default function TitleDetail() {
     }
   };
 
-  // Fetch and play from start: calls mock API, shows spinner, handles errors gracefully.
-  async function handlePlayFromStart() {
-    setPlayError("");
-    setLoadingPlay(true);
-    setStreamUrl("");
-    setStreamType(undefined);
-    const ctrl = new AbortController();
-    try {
-      const { url, type, raw } = await getPlayStream({ signal: ctrl.signal });
-      console.info("[TitleDetail] Play API success", { url, type, raw });
-      setStreamUrl(url);
-      setStreamType(type); // pass along 'dash' or 'hls' when available
-      setShowPlayer(true);
-    } catch (e) {
-      // Surface helpful diagnostics and show a friendly message
-      console.error("[TitleDetail] Play API error", {
-        message: e?.message,
-        stack: e?.stack,
-      });
-      const msg = (e?.message || "").toLowerCase();
-      let friendly = "Failed to start playback. Please try again.";
-      if (msg.includes("network") || msg.includes("cors")) {
-        friendly =
-          "Network error contacting the Play service. Please check your connection and try again.";
-      } else if (msg.includes("mixed-content")) {
-        friendly = "Blocked by mixed content policy. Please use HTTPS to load the app.";
-      }
-      setPlayError(friendly);
-    } finally {
-      setLoadingPlay(false);
-    }
+  // Immediately open overlay with a safe default source; no API calls or loading state.
+  function handlePlayFromStart() {
+    setStreamUrl(DEFAULT_STREAM.url);
+    setStreamType(DEFAULT_STREAM.type);
+    setShowPlayer(true);
   }
 
-  // Stub for "play from current": later will include resume position; for now reuses same behavior but keeps label stubbed
-  async function handlePlayFromCurrent() {
-    // Future: pass position/duration once resume API exists.
-    await handlePlayFromStart();
+  // Stub for "play from current": reuse same immediate start behavior for now.
+  function handlePlayFromCurrent() {
+    handlePlayFromStart();
   }
 
   return (
@@ -210,20 +190,7 @@ export default function TitleDetail() {
                   "An immersive story set against a vast, mysterious ocean. Follow the journey through breathtaking landscapes and unforgettable characters."}
               </p>
 
-              {/* Loading and error states for play action */}
-              <div className="mt-3 min-h-[1.25rem]">
-                {loadingPlay && (
-                  <div className="inline-flex items-center gap-2 text-sm text-gray-200">
-                    <span className="h-4 w-4 inline-block rounded-full border-2 border-white/40 border-t-white animate-spin" aria-hidden="true" />
-                    <span>Preparing your stream…</span>
-                  </div>
-                )}
-                {!loadingPlay && playError && (
-                  <div className="rounded-md bg-red-500/10 p-2 text-sm text-red-300 ring-1 ring-red-500/30">
-                    {playError}
-                  </div>
-                )}
-              </div>
+              {/* Simplified flow: no intermediate loading/error UI for play */}
 
               {/* Controls: single horizontal row of icon-only buttons directly under description */}
               <div
