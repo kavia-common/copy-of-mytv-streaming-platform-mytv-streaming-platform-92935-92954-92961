@@ -7,10 +7,14 @@ import { getKeyFromEvent } from "../remote/tizen-keys";
 const FEATURE_FLAGS = (process.env.REACT_APP_FEATURE_FLAGS || "").split(",").map((s) => s.trim().toLowerCase());
 const DIAG_SHOW_STREAM_URL = FEATURE_FLAGS.includes("showstreamurl");
 
-// Subtitle configuration via env; prefer external WebVTT when provided.
-const SUBTITLE_URL = process.env.REACT_APP_SUBTITLE_VTT_URL || "";
-const SUBTITLE_LANG = "en";
+/**
+ * Subtitle configuration:
+ * - External WebVTT support for EN/ES via env vars.
+ */
 const SUBTITLE_KIND = "subtitle";
+const EXT_VTT_EN = process.env.REACT_APP_SUBTITLE_VTT_URL_EN || "";
+const EXT_VTT_ES = process.env.REACT_APP_SUBTITLE_VTT_URL_ES || "";
+const SUB_LANG_SESSION_KEY = "mytv.player.subtitles.language";
 
 /**
  * PUBLIC_INTERFACE
@@ -53,6 +57,23 @@ export default function PlayerOverlay({ src, type, onClose, title = "Now Playing
     }
   });
   const [subtitleError, setSubtitleError] = useState("");
+  // Track languages available and the selected language
+  const [availableTextLangs, setAvailableTextLangs] = useState([]); // e.g., ["en","es"]
+  const [selectedLang, setSelectedLang] = useState(() => {
+    try {
+      return sessionStorage.getItem(SUB_LANG_SESSION_KEY) || "";
+    } catch {
+      return "";
+    }
+  });
+
+  const persistSelectedLang = useCallback((lang) => {
+    try {
+      sessionStorage.setItem(SUB_LANG_SESSION_KEY, lang || "");
+    } catch {
+      // ignore
+    }
+  }, []);
 
   const persistSubsEnabled = useCallback((val) => {
     try {
@@ -127,6 +148,57 @@ export default function PlayerOverlay({ src, type, onClose, title = "Now Playing
     };
   }, []);
 
+  // Select text language according to preferred order and enabled state
+  const applyTextLanguage = useCallback((player, langPref, enabled) => {
+    if (!player) return;
+    try {
+      // Visibility first
+      if (typeof player.setTextTrackVisibility === "function") {
+        player.setTextTrackVisibility(!!enabled);
+      }
+      if (!enabled) return;
+
+      // Prefer explicit track selection when available
+      const tracks = player.getTextTracks ? player.getTextTracks() : [];
+      let target = null;
+      if (langPref) {
+        target = tracks.find((t) => (t.language || "").toLowerCase().startsWith(langPref.toLowerCase()));
+      }
+      // If no exact match, try English, then Spanish, then first
+      if (!target) target = tracks.find((t) => (t.language || "").toLowerCase().startsWith("en"));
+      if (!target) target = tracks.find((t) => (t.language || "").toLowerCase().startsWith("es"));
+      if (!target && tracks.length > 0) target = tracks[0];
+
+      if (target && typeof player.selectTextTrack === "function") {
+        player.selectTextTrack(target);
+      } else if (langPref && typeof player.setTextLanguage === "function") {
+        player.setTextLanguage(langPref);
+      }
+    } catch (e) {
+      console.warn("[Shaka] applyTextLanguage failed:", e);
+    }
+  }, []);
+
+  // Refresh available languages from player
+  const refreshAvailableLanguages = useCallback((player) => {
+    try {
+      const langs = [];
+      const tracks = player?.getTextTracks ? player.getTextTracks() : [];
+      tracks.forEach((t) => {
+        const code = (t.language || "").toLowerCase();
+        if (code && !langs.includes(code)) langs.push(code);
+      });
+      // Normalize common variants
+      const normalized = langs.map((l) => (l.startsWith("en") ? "en" : l.startsWith("es") ? "es" : l));
+      const unique = Array.from(new Set(normalized));
+      setAvailableTextLangs(unique);
+      return unique;
+    } catch {
+      setAvailableTextLangs([]);
+      return [];
+    }
+  }, []);
+
   // Initialize Shaka or native playback
   useEffect(() => {
     let mounted = true;
@@ -193,48 +265,57 @@ export default function PlayerOverlay({ src, type, onClose, title = "Now Playing
 
         await player.load(src);
 
-        // After load: set up subtitles
+        // After load: set up subtitles EN/ES and selector
         try {
-          // Prefer external WebVTT via env
-          if (SUBTITLE_URL) {
+          // Register optional external tracks first so they appear in the list
+          if (EXT_VTT_EN) {
             try {
-              await player.addTextTrack(
-                SUBTITLE_URL,
-                SUBTITLE_LANG,
-                "text/vtt",
-                SUBTITLE_KIND,
-                "en" // label
-              );
-              console.log("[Shaka] External subtitle track added:", SUBTITLE_URL);
-              // Select the track if enabled
-              player.setTextTrackVisibility(!!subsEnabled);
-              if (subsEnabled) {
-                // pick English if available among external+embedded
-                const tracks = player.getTextTracks ? player.getTextTracks() : [];
-                const enTrack = tracks?.find((t) => (t.language || "").startsWith("en"));
-                if (enTrack && player.selectTextTrack) {
-                  player.selectTextTrack(enTrack);
-                }
-              }
-            } catch (subErr) {
-              console.warn("[Shaka] Adding external subtitles failed:", subErr);
-              setSubtitleError("Failed to load subtitles.");
-            }
-          } else {
-            // No external URL -> rely on embedded/detected tracks
-            player.setTextTrackVisibility(!!subsEnabled);
-            if (subsEnabled) {
-              try {
-                const tracks = player.getTextTracks ? player.getTextTracks() : [];
-                const enTrack = tracks?.find((t) => (t.language || "").startsWith("en"));
-                if (enTrack && player.selectTextTrack) {
-                  player.selectTextTrack(enTrack);
-                }
-              } catch (tErr) {
-                console.warn("[Shaka] Selecting embedded text track failed:", tErr);
-              }
+              await player.addTextTrack(EXT_VTT_EN, "en", "text/vtt", SUBTITLE_KIND, "EN");
+              console.log("[Shaka] External EN subtitle added:", EXT_VTT_EN);
+            } catch (e) {
+              console.warn("[Shaka] Failed to add EN VTT:", e);
+              setSubtitleError("Failed to load EN subtitles.");
             }
           }
+          if (EXT_VTT_ES) {
+            try {
+              await player.addTextTrack(EXT_VTT_ES, "es", "text/vtt", SUBTITLE_KIND, "ES");
+              console.log("[Shaka] External ES subtitle added:", EXT_VTT_ES);
+            } catch (e) {
+              console.warn("[Shaka] Failed to add ES VTT:", e);
+              setSubtitleError((prev) => prev || "Failed to load ES subtitles.");
+            }
+          }
+
+          // Pick default language: last selected, else EN, else first available
+          const langs = refreshAvailableLanguages(player);
+          let desired = selectedLang;
+          if (!desired || !langs.includes(desired)) {
+            if (langs.includes("en")) desired = "en";
+            else if (langs.includes("es")) desired = "es";
+            else desired = langs[0] || "";
+          }
+          setSelectedLang(desired);
+          if (desired) persistSelectedLang(desired);
+
+          // Apply visibility and selection
+          applyTextLanguage(player, desired, subsEnabled);
+
+          // Listen for track changes to refresh availability dynamically
+          const onTracksChanged = () => {
+            const newLangs = refreshAvailableLanguages(player);
+            if (newLangs.length && !newLangs.includes(selectedLang)) {
+              // current selected language disappeared, fallback
+              const fallback = newLangs.includes("en") ? "en" : newLangs[0];
+              setSelectedLang(fallback);
+              persistSelectedLang(fallback);
+              applyTextLanguage(player, fallback, subsEnabled);
+            }
+          };
+          player.addEventListener("texttrackchanged", onTracksChanged);
+          player.addEventListener("trackschanged", onTracksChanged);
+
+          // Cleanup listeners when effect re-runs/unmounts via return in outer effect
         } catch (subtitleSetupErr) {
           console.warn("[Shaka] Subtitle setup encountered an error:", subtitleSetupErr);
           setSubtitleError("Subtitle setup error.");
@@ -400,15 +481,7 @@ export default function PlayerOverlay({ src, type, onClose, title = "Now Playing
     const player = playerRef.current;
     if (player && typeof player.setTextTrackVisibility === "function") {
       try {
-        player.setTextTrackVisibility(next);
-        // If turning on, prefer English track
-        if (next) {
-          const tracks = player.getTextTracks ? player.getTextTracks() : [];
-          const enTrack = tracks?.find((t) => (t.language || "").startsWith("en"));
-          if (enTrack && player.selectTextTrack) {
-            player.selectTextTrack(enTrack);
-          }
-        }
+        applyTextLanguage(player, selectedLang, next);
       } catch (e) {
         console.warn("[Shaka] Failed to update subtitle visibility:", e);
         setSubtitleError("Unable to toggle subtitles.");
@@ -518,6 +591,22 @@ export default function PlayerOverlay({ src, type, onClose, title = "Now Playing
       el.removeEventListener("keydown", overlayKeyHandler);
     };
   }, [overlayKeyHandler]);
+
+  // Keep available language list in sync when enabled toggles or player becomes ready
+  useEffect(() => {
+    const player = playerRef.current;
+    if (!player) return;
+    const langs = refreshAvailableLanguages(player);
+    // If selected disappears, fallback
+    if (langs.length && selectedLang && !langs.includes(selectedLang)) {
+      const fallback = langs.includes("en") ? "en" : langs[0];
+      setSelectedLang(fallback);
+      persistSelectedLang(fallback);
+      applyTextLanguage(player, fallback, subsEnabled);
+    } else if (langs.length && subsEnabled) {
+      applyTextLanguage(player, selectedLang, true);
+    }
+  }, [ready, subsEnabled, refreshAvailableLanguages, applyTextLanguage, selectedLang, persistSelectedLang]);
 
   // Also capture Back/Escape when video has focus by listening at window in capture phase,
   // but only act if the event target is inside the overlay.
@@ -659,7 +748,7 @@ export default function PlayerOverlay({ src, type, onClose, title = "Now Playing
       {/* Minimal help hint */}
       {!errorText && (
         <div className={`absolute bottom-3 right-4 text-xs text-white/80 bg-white/10 rounded px-2 py-1 ring-1 ring-white/10 transition-opacity ${controlsVisible ? "opacity-100" : "opacity-0"}`}>
-          Enter: Play/Pause • Left/Right: -10s/+10s • Back: Exit • CC: Subtitles
+          Enter: Play/Pause • Left/Right: -10s/+10s • Back: Exit • CC: Subtitles • Lang: EN/ES
         </div>
       )}
 
