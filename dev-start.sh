@@ -14,6 +14,7 @@ if [[ ! -d "$FRONTEND_DIR" ]]; then
 fi
 
 cd "$FRONTEND_DIR"
+echo "Resolved FRONTEND_DIR: $(pwd)"
 
 # Install dependencies if node_modules missing
 if [[ ! -d "node_modules" ]]; then

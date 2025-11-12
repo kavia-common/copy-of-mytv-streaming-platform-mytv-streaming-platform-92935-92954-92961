@@ -63,7 +63,7 @@ Using the `dist` directory that contains `index.html` and `config.xml`:
 cd ../tizen
 
 # Build web (generates .wgt in ./.buildResult)
-tizen build-web -- . /home/kavia/workspace/code-generation/mytv-streaming-platform-92935-92954/tizen/dist
+tizen build-web -- . /home/kavia/workspace/code-generation/copy-of-mytv-streaming-platform-mytv-streaming-platform-92935-92954-92961/tizen/dist
 
 # Alternatively, change into dist and build from there:
 cd dist
