@@ -142,29 +142,41 @@ export default function Login() {
     if (!isMeta) {
       const k = String(valOrMeta || "");
       if (!/^\d$/.test(k)) return;
-      // Enforce max length 4 and show an error if overflow attempted
-      setPin((prev) => {
-        if (prev.length >= 4) {
-          if (!error) setError("PIN must be 4 digits.");
-          return prev;
-        }
-        setError("");
-        return (prev + k).slice(0, 4);
-        });
+
+      let nextLen = pin.length + 1;
+      if (nextLen > 4) {
+        if (!error) setError("PIN must be 4 digits.");
+        return;
+      }
+
+      const next = (pin + k).slice(0, 4);
+      setPin(next);
+      if (error && next.length <= 4) setError("");
+
+      // Auto-submit when reaching 4 digits if currently focused on PIN
+      if (next.length === 4 && activeField === "pin") {
+        onSubmit({ preventDefault: () => {} });
+      }
       return;
     }
+
     const action = valOrMeta.action;
     if (action === "backspace") {
-      setPin((prev) => {
-        const next = prev.slice(0, -1);
-        if (next.length <= 4) setError(""); // clear length error
-        return next;
-      });
+      const next = pin.slice(0, -1);
+      setPin(next);
+      if (next.length < 4) setError("");
     } else if (action === "clear") {
       setPin("");
       setError("");
     } else if (action === "done") {
-      onSubmit({ preventDefault: () => {} });
+      // Submit only if PIN has exactly 4 digits
+      if (pin.length === 4) {
+        onSubmit({ preventDefault: () => {} });
+      } else {
+        setError("PIN must be 4 digits.");
+      }
+    } else if (action === "space") {
+      // ignore for numeric pad
     }
   };
 

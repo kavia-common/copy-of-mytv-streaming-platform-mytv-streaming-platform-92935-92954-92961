@@ -160,30 +160,42 @@ export default function SignUp() {
     if (!isMeta) {
       const k = String(valOrMeta || "");
       if (!/^\d$/.test(k)) return;
-      setPin((prev) => {
-        if (prev.length >= 4) {
-          if (!error) setError("PIN must be exactly 4 digits.");
-          return prev;
-        }
-        setError("");
-        return (prev + k).slice(0, 4);
-      });
+
+      const next = (pin + k).slice(0, 4);
+      if (pin.length >= 4) {
+        if (!error) setError("PIN must be exactly 4 digits.");
+        return;
+      }
+      setPin(next);
+      if (error && next.length <= 4) setError("");
+
+      // If becomes 4, move to Confirm
+      if (next.length === 4) {
+        setActiveField("confirm");
+        setFocus("signup-confirm");
+        cRef.current?.focus?.();
+      }
       return;
     }
     const action = valOrMeta.action;
     if (action === "backspace") {
-      setPin((prev) => {
-        const next = prev.slice(0, -1);
-        if (next.length <= 4) setError("");
-        return next;
-      });
+      const next = pin.slice(0, -1);
+      setPin(next);
+      if (next.length <= 4) setError("");
     } else if (action === "clear") {
       setPin("");
       setError("");
     } else if (action === "done") {
-      setActiveField("confirm");
-      setFocus("signup-confirm");
-      cRef.current?.focus?.();
+      // Move on only if 4 digits
+      if (pin.length === 4) {
+        setActiveField("confirm");
+        setFocus("signup-confirm");
+        cRef.current?.focus?.();
+      } else {
+        setError("PIN must be exactly 4 digits.");
+      }
+    } else if (action === "space") {
+      // ignore
     }
   };
 
@@ -192,30 +204,49 @@ export default function SignUp() {
     if (!isMeta) {
       const k = String(valOrMeta || "");
       if (!/^\d$/.test(k)) return;
-      setConfirmPin((prev) => {
-        if (prev.length >= 4) {
-          if (!error) setError("PIN must be exactly 4 digits.");
-          return prev;
+
+      const next = (confirmPin + k).slice(0, 4);
+      if (confirmPin.length >= 4) {
+        if (!error) setError("PIN must be exactly 4 digits.");
+        return;
+      }
+      setConfirmPin(next);
+      if (error && next.length <= 4) setError("");
+
+      // If reaches 4 and matches PIN, proceed to phone; otherwise show mismatch
+      if (next.length === 4) {
+        if (next !== pin) {
+          setError("PIN and Confirm PIN do not match.");
+        } else {
+          setError("");
+          setActiveField("phone");
+          setFocus("signup-phone");
+          phRef.current?.focus?.();
         }
-        setError("");
-        return (prev + k).slice(0, 4);
-      });
+      }
       return;
     }
+
     const action = valOrMeta.action;
     if (action === "backspace") {
-      setConfirmPin((prev) => {
-        const next = prev.slice(0, -1);
-        if (next.length <= 4) setError("");
-        return next;
-      });
+      const next = confirmPin.slice(0, -1);
+      setConfirmPin(next);
+      if (next.length <= 4) setError("");
     } else if (action === "clear") {
       setConfirmPin("");
       setError("");
     } else if (action === "done") {
-      setActiveField("phone");
-      setFocus("signup-phone");
-      phRef.current?.focus?.();
+      if (confirmPin.length === 4 && confirmPin === pin) {
+        setActiveField("phone");
+        setFocus("signup-phone");
+        phRef.current?.focus?.();
+      } else if (confirmPin.length !== 4) {
+        setError("PIN must be exactly 4 digits.");
+      } else {
+        setError("PIN and Confirm PIN do not match.");
+      }
+    } else if (action === "space") {
+      // ignore
     }
   };
 

@@ -7,8 +7,10 @@ import { useRemoteControl } from "../remote/RemoteControl";
  * VirtualKeyboard
  * TV-friendly on-screen keyboard with D-pad focusable keys.
  * PUBLIC API:
- * - onKeyPress(value, meta): called for every key press. value is a string for normal keys.
- *   meta is an optional object with { action: 'backspace'|'clear'|'space'|'done' }.
+ * - onKeyPress(valueOrMeta, meta): called for every key press.
+ *   If a standard character key is pressed, the first argument is the character string.
+ *   For special keys, the first argument is an object: { action: 'backspace'|'clear'|'space'|'done' }.
+ *   The optional second argument duplicates this meta for convenience with older signatures.
  * - onDone(): convenience callback when "Done" is pressed.
  *
  * Props:
