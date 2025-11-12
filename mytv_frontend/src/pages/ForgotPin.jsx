@@ -1,9 +1,10 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import TopNav from "../components/TopNav";
 import Button from "../components/Button";
 import { useFocusable, useFocusManager } from "../remote/focus/FocusContext";
 import { findUser } from "../store/userStore";
+import { ACTIONS, useRemoteControl } from "../remote/RemoteControl";
 
 /**
  * PUBLIC_INTERFACE
@@ -21,6 +22,15 @@ export default function ForgotPin() {
 
   const userRef = useRef(null);
   const phoneRef = useRef(null);
+
+  useRemoteControl((action) => {
+    if (action === ACTIONS.BACK) {
+      // allow any intercept handler to run first via provider; if it reaches here, go to login
+      navigate("/login", { replace: true });
+      return true;
+    }
+    return false;
+  });
 
   const { focusableProps: userFocus } = useFocusable({
     id: "forgot-username",

@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef } from "react";
 import { useFocusable, useFocusManager } from "../remote/focus/FocusContext";
+import { useRemoteControl } from "../remote/RemoteControl";
 
 /**
  * PUBLIC_INTERFACE
@@ -63,6 +64,15 @@ export default function VirtualKeyboard({
 
   const { setFocus } = useFocusManager();
   const gridRef = useRef(null);
+
+  // Intercept back at keyboard-level; notify provider so it handles via "__internal_back_intercept"
+  useRemoteControl((action) => {
+    if (action === "__internal_back_intercept") {
+      // True to signal handled so default provider doesn't navigate yet.
+      return true;
+    }
+    return false;
+  });
 
   useEffect(() => {
     if (defaultFocused && keyIds[0]?.[0]) {

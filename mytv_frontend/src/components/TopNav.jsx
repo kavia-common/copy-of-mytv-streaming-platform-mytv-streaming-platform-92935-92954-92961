@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { getSession, findUser, clearSession } from "../store/userStore";
 import { useFocusable } from "../remote/focus/FocusContext";
+import { useRemoteControl } from "../remote/RemoteControl";
 
 /**
  * PUBLIC_INTERFACE
@@ -17,6 +18,9 @@ export default function TopNav() {
   const [username, setUsername] = useState("");
   const btnRef = useRef(null);
   const menuRef = useRef(null);
+
+  // Example subscription placeholder; reserved for future color/info actions scoped to TopNav if needed
+  useRemoteControl(() => false);
 
   useEffect(() => {
     const sess = getSession();

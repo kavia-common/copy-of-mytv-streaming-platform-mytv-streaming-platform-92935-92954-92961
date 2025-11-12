@@ -12,7 +12,7 @@ import SignUp from './pages/SignUp';
 
 // Remote focus/keys
 import { FocusManagerProvider } from './remote/focus/FocusContext';
-import RemoteKeyHandler from './remote/RemoteKeyHandler';
+import { RemoteControlProvider } from './remote/RemoteControl';
 
 // App settings context
 import { AppSettingsProvider } from './context/SettingsContext';
@@ -21,25 +21,26 @@ import { AppSettingsProvider } from './context/SettingsContext';
  * PUBLIC_INTERFACE
  * App
  * Adds auth flows: /login, /forgot-pin, /signup and preserves existing routes.
- * RemoteKeyHandler enables Samsung TV remote keys globally.
+ * RemoteControlProvider enables Samsung TV remote keys globally with normalized mapping.
  */
 function App() {
   return (
     <BrowserRouter>
       <FocusManagerProvider>
         <AppSettingsProvider>
-          <RemoteKeyHandler />
-          <Routes>
-            <Route path="/" element={<Splash />} />
-            <Route path="/home" element={<Home />} />
-            <Route path="/login" element={<Login />} />
-            <Route path="/forgot-pin" element={<ForgotPin />} />
-            <Route path="/signup" element={<SignUp />} />
-            <Route path="/settings" element={<Settings />} />
-            <Route path="/title/:id" element={<TitleDetail />} />
-            {/* Fallback to splash */}
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
+          <RemoteControlProvider>
+            <Routes>
+              <Route path="/" element={<Splash />} />
+              <Route path="/home" element={<Home />} />
+              <Route path="/login" element={<Login />} />
+              <Route path="/forgot-pin" element={<ForgotPin />} />
+              <Route path="/signup" element={<SignUp />} />
+              <Route path="/settings" element={<Settings />} />
+              <Route path="/title/:id" element={<TitleDetail />} />
+              {/* Fallback to splash */}
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
+          </RemoteControlProvider>
         </AppSettingsProvider>
       </FocusManagerProvider>
     </BrowserRouter>

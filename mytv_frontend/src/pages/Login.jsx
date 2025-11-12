@@ -1,10 +1,11 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import Button from "../components/Button";
 import { useFocusable, useFocusManager } from "../remote/focus/FocusContext";
 import TopNav from "../components/TopNav";
 import { validateCredentials, createSession, getSession } from "../store/userStore";
 import VirtualKeyboard from "../components/VirtualKeyboard";
+import { ACTIONS, useRemoteControl } from "../remote/RemoteControl";
 
 /**
  * PUBLIC_INTERFACE
@@ -20,6 +21,18 @@ export default function Login() {
   const [activeField, setActiveField] = useState("username"); // 'username' | 'pin'
   const navigate = useNavigate();
   const { setFocus } = useFocusManager();
+
+  // Intercept Back when virtual keyboard is focused: if activeField is username/pin, first move focus back to form
+  const interceptBack = useMemo(() => (action, e) => {
+    if (action !== "__internal_back_intercept") return false;
+    // If focus id is on keyboard, move focus back to the current field
+    const targetId = activeField === "username" ? "login-username" : "login-pin";
+    setFocus(targetId);
+    // Do not claim handled if the target already was not on keyboard; still bring focus back to field as UX nicety
+    return true;
+  }, [activeField, setFocus]);
+
+  useRemoteControl(interceptBack);
 
   // Redirect to /home if already logged in
   useEffect(() => {

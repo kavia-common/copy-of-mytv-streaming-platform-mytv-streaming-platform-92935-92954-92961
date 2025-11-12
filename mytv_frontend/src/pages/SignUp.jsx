@@ -5,6 +5,7 @@ import Button from "../components/Button";
 import { useFocusable, useFocusManager } from "../remote/focus/FocusContext";
 import { findUser, upsertUser, createSession } from "../store/userStore";
 import VirtualKeyboard from "../components/VirtualKeyboard";
+import { useRemoteControl } from "../remote/RemoteControl";
 
 /**
  * PUBLIC_INTERFACE
@@ -22,6 +23,23 @@ export default function SignUp() {
   const [activeField, setActiveField] = useState("username"); // 'username' | 'pin' | 'confirm' | 'phone'
   const navigate = useNavigate();
   const { setFocus } = useFocusManager();
+
+  // Intercept Back to jump from keyboard to the active input before leaving page
+  useRemoteControl((action) => {
+    if (action === "__internal_back_intercept") {
+      const id =
+        activeField === "username"
+          ? "signup-username"
+          : activeField === "pin"
+          ? "signup-pin"
+          : activeField === "confirm"
+          ? "signup-confirm"
+          : "signup-phone";
+      setFocus(id);
+      return true;
+    }
+    return false;
+  });
 
   const uRef = useRef(null);
   const pRef = useRef(null);
