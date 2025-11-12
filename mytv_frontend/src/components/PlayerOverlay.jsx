@@ -7,6 +7,11 @@ import { getKeyFromEvent } from "../remote/tizen-keys";
 const FEATURE_FLAGS = (process.env.REACT_APP_FEATURE_FLAGS || "").split(",").map((s) => s.trim().toLowerCase());
 const DIAG_SHOW_STREAM_URL = FEATURE_FLAGS.includes("showstreamurl");
 
+// Subtitle configuration via env; prefer external WebVTT when provided.
+const SUBTITLE_URL = process.env.REACT_APP_SUBTITLE_VTT_URL || "";
+const SUBTITLE_LANG = "en";
+const SUBTITLE_KIND = "subtitle";
+
 /**
  * PUBLIC_INTERFACE
  * PlayerOverlay
@@ -36,6 +41,26 @@ export default function PlayerOverlay({ src, type, onClose, title = "Now Playing
   const [ready, setReady] = useState(false);
   const [errorText, setErrorText] = useState("");
   const [usingNative, setUsingNative] = useState(false);
+
+  // Subtitles state: default ON, persist within session
+  const SUB_SESSION_KEY = "mytv.player.subtitles.enabled";
+  const [subsEnabled, setSubsEnabled] = useState(() => {
+    try {
+      const raw = sessionStorage.getItem(SUB_SESSION_KEY);
+      return raw === null ? true : raw === "true";
+    } catch {
+      return true;
+    }
+  });
+  const [subtitleError, setSubtitleError] = useState("");
+
+  const persistSubsEnabled = useCallback((val) => {
+    try {
+      sessionStorage.setItem(SUB_SESSION_KEY, String(val));
+    } catch {
+      // ignore
+    }
+  }, []);
 
   // Diagnostics: capture the exact URL we attempt to play.
   const [diagUrl, setDiagUrl] = useState("");
@@ -168,6 +193,53 @@ export default function PlayerOverlay({ src, type, onClose, title = "Now Playing
 
         await player.load(src);
 
+        // After load: set up subtitles
+        try {
+          // Prefer external WebVTT via env
+          if (SUBTITLE_URL) {
+            try {
+              await player.addTextTrack(
+                SUBTITLE_URL,
+                SUBTITLE_LANG,
+                "text/vtt",
+                SUBTITLE_KIND,
+                "en" // label
+              );
+              console.log("[Shaka] External subtitle track added:", SUBTITLE_URL);
+              // Select the track if enabled
+              player.setTextTrackVisibility(!!subsEnabled);
+              if (subsEnabled) {
+                // pick English if available among external+embedded
+                const tracks = player.getTextTracks ? player.getTextTracks() : [];
+                const enTrack = tracks?.find((t) => (t.language || "").startsWith("en"));
+                if (enTrack && player.selectTextTrack) {
+                  player.selectTextTrack(enTrack);
+                }
+              }
+            } catch (subErr) {
+              console.warn("[Shaka] Adding external subtitles failed:", subErr);
+              setSubtitleError("Failed to load subtitles.");
+            }
+          } else {
+            // No external URL -> rely on embedded/detected tracks
+            player.setTextTrackVisibility(!!subsEnabled);
+            if (subsEnabled) {
+              try {
+                const tracks = player.getTextTracks ? player.getTextTracks() : [];
+                const enTrack = tracks?.find((t) => (t.language || "").startsWith("en"));
+                if (enTrack && player.selectTextTrack) {
+                  player.selectTextTrack(enTrack);
+                }
+              } catch (tErr) {
+                console.warn("[Shaka] Selecting embedded text track failed:", tErr);
+              }
+            }
+          }
+        } catch (subtitleSetupErr) {
+          console.warn("[Shaka] Subtitle setup encountered an error:", subtitleSetupErr);
+          setSubtitleError("Subtitle setup error.");
+        }
+
         // Confirm current manifest after load (Shaka may resolve redirects)
         try {
           const manifestUri = player.getManifestUri?.();
@@ -246,7 +318,7 @@ export default function PlayerOverlay({ src, type, onClose, title = "Now Playing
       }
       if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
     };
-  }, [src, urlInfo.isDash, urlInfo.isHls, type, showControls]);
+  }, [src, urlInfo.isDash, urlInfo.isHls, type, showControls, subsEnabled]);
 
   // Listen to timeupdate, durationchange, progress for progress bar
   useEffect(() => {
@@ -315,6 +387,46 @@ export default function PlayerOverlay({ src, type, onClose, title = "Now Playing
       });
     } else {
       v.pause?.();
+    }
+  }
+
+  // PUBLIC_INTERFACE
+  function toggleSubtitles() {
+    /** Toggle subtitle visibility on/off and persist during session. */
+    const next = !subsEnabled;
+    setSubsEnabled(next);
+    persistSubsEnabled(next);
+
+    const player = playerRef.current;
+    if (player && typeof player.setTextTrackVisibility === "function") {
+      try {
+        player.setTextTrackVisibility(next);
+        // If turning on, prefer English track
+        if (next) {
+          const tracks = player.getTextTracks ? player.getTextTracks() : [];
+          const enTrack = tracks?.find((t) => (t.language || "").startsWith("en"));
+          if (enTrack && player.selectTextTrack) {
+            player.selectTextTrack(enTrack);
+          }
+        }
+      } catch (e) {
+        console.warn("[Shaka] Failed to update subtitle visibility:", e);
+        setSubtitleError("Unable to toggle subtitles.");
+      }
+    } else {
+      // Native fallback path: expose tracks on HTML5 video if any exist
+      const v = videoRef.current;
+      try {
+        if (v && v.textTracks && v.textTracks.length > 0) {
+          for (let i = 0; i < v.textTracks.length; i++) {
+            const track = v.textTracks[i];
+            track.mode = next ? "showing" : "disabled";
+          }
+        }
+      } catch (err) {
+        console.warn("[Native] Subtitle toggle failed:", err);
+        setSubtitleError("Unable to toggle subtitles.");
+      }
     }
   }
 
@@ -491,13 +603,31 @@ export default function PlayerOverlay({ src, type, onClose, title = "Now Playing
           >
             ⏩
           </button>
+          <button
+            type="button"
+            aria-label={subsEnabled ? "Turn subtitles off" : "Turn subtitles on"}
+            title={subsEnabled ? "Subtitles: On" : "Subtitles: Off"}
+            className={`h-12 w-12 md:h-14 md:w-14 rounded-full focus:outline-none focus:ring-2 text-white text-base md:text-lg ${
+              subsEnabled
+                ? "bg-emerald-600 hover:bg-emerald-500 focus:ring-emerald-300"
+                : "bg-white/10 hover:bg-white/20 focus:ring-white/30"
+            }`}
+            onClick={() => { toggleSubtitles(); showControls(); }}
+          >
+            CC
+          </button>
         </div>
       </div>
 
       {/* Error banner */}
       {errorText && (
-        <div className="absolute bottom-20 left-1/2 -translate-x-1/2 rounded-md bg-red-600/90 text-white px-3 py-1.5 text-sm ring-1 ring-white/10">
+        <div className="absolute bottom-24 left-1/2 -translate-x-1/2 rounded-md bg-red-600/90 text-white px-3 py-1.5 text-sm ring-1 ring-white/10">
           {errorText}
+        </div>
+      )}
+      {subtitleError && (
+        <div className="absolute bottom-16 left-1/2 -translate-x-1/2 rounded-md bg-red-600/80 text-white px-3 py-1.5 text-sm ring-1 ring-white/10">
+          {subtitleError}
         </div>
       )}
 
@@ -529,7 +659,7 @@ export default function PlayerOverlay({ src, type, onClose, title = "Now Playing
       {/* Minimal help hint */}
       {!errorText && (
         <div className={`absolute bottom-3 right-4 text-xs text-white/80 bg-white/10 rounded px-2 py-1 ring-1 ring-white/10 transition-opacity ${controlsVisible ? "opacity-100" : "opacity-0"}`}>
-          Enter: Play/Pause • Left/Right: -10s/+10s • Back: Exit
+          Enter: Play/Pause • Left/Right: -10s/+10s • Back: Exit • CC: Subtitles
         </div>
       )}
 
