@@ -27,5 +27,5 @@
     "REACT_APP_EXPERIMENTS_ENABLED": "${localEnv:REACT_APP_EXPERIMENTS_ENABLED}"
   },
   "postCreateCommand": "cd mytv_frontend && npm ci || npm install",
-  "postStartCommand": "cd mytv_frontend && PORT=${REACT_APP_PORT:-3000} CI=false npm start"
+  "postStartCommand": "cd mytv_frontend && HOST=0.0.0.0 PORT=${REACT_APP_PORT:-3000} CI=false npm start"
 }

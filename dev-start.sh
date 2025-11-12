@@ -27,9 +27,10 @@ if [[ ! -d "node_modules" ]]; then
   fi
 fi
 
-# Default port to 3000 if not set
+# Default host/port
 PORT="${REACT_APP_PORT:-3000}"
-export PORT
+HOST="${HOST:-0.0.0.0}"
+export PORT HOST
 
-echo "Starting mytv_frontend in $(pwd) on port ${PORT} ..."
+echo "Starting mytv_frontend in $(pwd) on ${HOST}:${PORT} ..."
 CI=false npm start
