@@ -1,12 +1,16 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
 import Button from "./Button";
+import useRandomBanner from "./useRandomBanner";
 
 /**
  * PUBLIC_INTERFACE
  * HeroBanner
  * Renders a full-width 16:9 image banner with dark overlay, safe viewport clamps,
- * and CTA placeholders. Uses local fallback banner image to avoid external deps.
+ * random curated background with smooth crossfade, and CTA placeholders.
+ * Props:
+ * - movie: optional movie data to display text.
+ * - bannerImage: optional lock to a specific image; when provided, randomization is skipped.
  */
 export default function HeroBanner({ movie, bannerImage }) {
   const navigate = useNavigate();
@@ -19,8 +23,9 @@ export default function HeroBanner({ movie, bannerImage }) {
   const year = movie?.year || "2024";
   const rating = movie?.rating ? `${movie.rating} Match` : "91% Match";
 
-  // Prefer explicit prop, then movie backdrop, then local default asset
-  const imgSrc = bannerImage || movie?.backdrop || "/assets/banner-default.jpg";
+  // Prefer explicit prop to lock a specific image; otherwise randomized curated banners
+  const { src: randomSrc } = useRandomBanner(bannerImage);
+  const imgSrc = randomSrc || movie?.backdrop || "/assets/banner-default.jpg";
 
   return (
     <section
@@ -34,9 +39,10 @@ export default function HeroBanner({ movie, bannerImage }) {
       {/* 16:9 holder ensures the media never distorts */}
       <div className="aspect-16-9">
         <img
+          key={imgSrc} // key-switch to enable CSS crossfade via mount/unmount
           src={imgSrc}
           alt={title ? `${title} banner` : "Hero banner"}
-          className="media-cover"
+          className="media-cover hero-crossfade will-opacity"
           draggable="false"
           loading="eager"
         />
@@ -48,7 +54,7 @@ export default function HeroBanner({ movie, bannerImage }) {
         aria-hidden="true"
         style={{
           background:
-            "linear-gradient(to top, rgba(0,0,0,0.7) 10%, rgba(0,0,0,0.35) 45%, rgba(0,0,0,0.15) 70%, rgba(0,0,0,0) 100%)",
+            "linear-gradient(to top, rgba(0,0,0,0.72) 10%, rgba(0,0,0,0.4) 45%, rgba(0,0,0,0.18) 70%, rgba(0,0,0,0) 100%)",
         }}
       />
 

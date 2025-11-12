@@ -1,0 +1,3 @@
+This is a placeholder text file to reserve the path for the banner image. 
+Please replace this file with an actual JPEG image in CI or deployment if binary assets are supported. 
+Until then, the code will reference /assets/banner-default.jpg which should exist.

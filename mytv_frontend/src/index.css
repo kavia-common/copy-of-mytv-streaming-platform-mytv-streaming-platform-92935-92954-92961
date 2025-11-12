@@ -356,3 +356,13 @@ img, video {
   opacity: 1;
   transform: translateY(0);
 }
+
+/* Crossfade for hero/banner image swaps on mount/load */
+.hero-crossfade {
+  opacity: 0;
+  animation: heroFadeIn var(--dur-slow) var(--ease-emphasized) forwards;
+}
+@keyframes heroFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
