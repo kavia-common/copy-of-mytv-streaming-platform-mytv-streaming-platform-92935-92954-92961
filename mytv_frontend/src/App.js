@@ -7,6 +7,8 @@ import Home from './pages/Home';
 import Login from './pages/Login';
 import Settings from './pages/Settings';
 import TitleDetail from './pages/TitleDetail';
+import ForgotPin from './pages/ForgotPin';
+import SignUp from './pages/SignUp';
 
 // Remote focus/keys
 import { FocusManagerProvider } from './remote/focus/FocusContext';
@@ -18,9 +20,8 @@ import { AppSettingsProvider } from './context/SettingsContext';
 /**
  * PUBLIC_INTERFACE
  * App
- * The main Router entry configuring routes for Splash (/), Home (/home), Login (/login), and Settings (/settings).
- * Applies basic layout boundaries and provides a safe default redirect.
- * Wraps the app with FocusManagerProvider, AppSettingsProvider, and attaches RemoteKeyHandler to support TV remote navigation and global settings.
+ * Adds auth flows: /login, /forgot-pin, /signup and preserves existing routes.
+ * RemoteKeyHandler enables Samsung TV remote keys globally.
  */
 function App() {
   return (
@@ -32,6 +33,8 @@ function App() {
             <Route path="/" element={<Splash />} />
             <Route path="/home" element={<Home />} />
             <Route path="/login" element={<Login />} />
+            <Route path="/forgot-pin" element={<ForgotPin />} />
+            <Route path="/signup" element={<SignUp />} />
             <Route path="/settings" element={<Settings />} />
             <Route path="/title/:id" element={<TitleDetail />} />
             {/* Fallback to splash */}

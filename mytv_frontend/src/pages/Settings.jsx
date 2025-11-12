@@ -1,5 +1,6 @@
 import React, { useMemo, useRef } from "react";
 import NavBar from "../components/NavBar";
+import TopNav from "../components/TopNav";
 import { useAppSettings } from "../context/SettingsContext";
 import { useFocusable } from "../remote/focus/FocusContext";
 
@@ -66,7 +67,8 @@ export default function Settings() {
   return (
     <div className="min-h-screen bg-[color:var(--ocean-bg)] flex flex-col">
       <NavBar />
-      <main className="pt-16 md:pt-20 flex-1">
+      <TopNav />
+      <main className="pt-24 md:pt-28 flex-1">
         <div className="mx-auto max-w-3xl px-4 sm:px-5 md:px-6 lg:px-8">
           <header className="mb-6 md:mb-8">
             <h1 className="text-2xl md:text-3xl font-extrabold text-white">Settings</h1>

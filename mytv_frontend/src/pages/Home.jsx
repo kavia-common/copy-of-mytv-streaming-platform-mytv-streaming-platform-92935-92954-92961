@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo } from "react";
 import NavBar from "../components/NavBar";
+import TopNav from "../components/TopNav";
 import HeroBanner from "../components/HeroBanner";
 import Rail from "../components/Rail";
 import Footer from "../components/Footer";
@@ -44,8 +45,10 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-[color:var(--ocean-bg)] flex flex-col">
+      {/* Keep original NavBar (sections, etc.) and add TopNav avatar for auth */}
       <NavBar />
-      <main className="flex-1">
+      <TopNav />
+      <main className="flex-1 pt-10 md:pt-10">
         <HeroBanner movie={featured} />
         <div className="mt-1 space-y-2">
           {/* Anchored sections for navbar hash links */}

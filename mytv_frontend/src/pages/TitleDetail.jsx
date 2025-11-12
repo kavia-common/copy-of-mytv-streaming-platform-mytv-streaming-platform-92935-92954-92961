@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import NavBar from "../components/NavBar";
+import TopNav from "../components/TopNav";
 import Footer from "../components/Footer";
 import Button from "../components/Button";
 import PlayerOverlay from "../components/PlayerOverlay";
@@ -146,7 +147,8 @@ export default function TitleDetail() {
   return (
     <div className="min-h-screen bg-[color:var(--ocean-bg)] flex flex-col">
       <NavBar />
-      <main className="flex-1">
+      <TopNav />
+      <main className="flex-1 pt-10 md:pt-10">
         {/* Hero section with only backdrop and title/meta; description relocated below heading in content card */}
         <section className="relative w-full h-[62vh] min-h-[420px] overflow-hidden">
           <img
