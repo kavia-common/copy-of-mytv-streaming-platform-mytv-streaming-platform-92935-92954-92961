@@ -5,130 +5,94 @@ import Button from "./Button";
 /**
  * PUBLIC_INTERFACE
  * HeroBanner
- * Cinematic full-bleed hero with optional video backdrop, gradient overlays, bold title/metadata, and CTAs.
- * Accessible buttons have ARIA labels and keyboard focus-visible styles.
- *
- * This version wires a responsive dummy video (desktop and mobile sources) that autoplays, loops, is muted,
- * and plays inline on mobile. If the video fails to load or cannot play, it gracefully falls back to the
- * existing image backdrop. Overlays and CTAs are preserved. Performance: uses preload="none", disablePictureInPicture,
- * and provides a poster from the movie backdrop when available.
+ * Enforces a 16:9 hero area clamped within safe viewport heights; media uses object-fit: cover to prevent stretch.
  */
 export default function HeroBanner({ movie }) {
-  // Dummy video URLs provided in task
   const DESKTOP_VIDEO = "https://cdn.example.com/trailers/dummy-hero.mp4";
   const MOBILE_VIDEO = "https://cdn.example.com/trailers/dummy-hero-mobile.mp4";
 
-  // Hooks must always be called; guard their usage later if movie is null
   const [videoError, setVideoError] = useState(false);
   const videoRef = useRef(null);
   const navigate = useNavigate();
 
-  // pick poster from movie backdrop if available (handle undefined movie)
   const poster = movie?.backdrop || undefined;
 
-  // Basic client hint to prefer mobile source
   const prefersMobile = useMemo(() => {
     if (typeof window === "undefined") return false;
-    return window.innerWidth <= 640; // sm breakpoint
+    return window.innerWidth <= 640;
   }, []);
 
-  const onVideoError = () => {
-    setVideoError(true);
-  };
+  const onVideoError = () => setVideoError(true);
 
   const onCanPlay = () => {
-    // Attempt to start playback programmatically if the browser blocks it; muted allows autoplay typically.
     try {
       const p = videoRef.current?.play?.();
       if (p && typeof p.then === "function") {
-        p.catch(() => {
-          // If play is blocked for some reason, fallback to image
-          setVideoError(true);
-        });
+        p.catch(() => setVideoError(true));
       }
     } catch {
       setVideoError(true);
     } finally {
-      // mark video ready for fade-in class
       requestAnimationFrame(() => {
         videoRef.current?.classList?.add("hero-video-ready");
       });
     }
   };
 
-  // If no movie, render an empty placeholder section to maintain layout (no hooks after return)
   if (!movie) {
-    return <section className="relative w-full h-[40vh] min-h-[320px] overflow-hidden" aria-hidden="true" />;
+    return (
+      <section className="relative w-full overflow-hidden" style={{ height: "min(56.25vw, 100svh)" }} aria-hidden="true" />
+    );
   }
 
-  // Render video unless we've encountered an error; provide <source> for mobile/desktop.
   const showVideo = !videoError;
 
   return (
     <section
-      className="relative w-full overflow-hidden"
+      className="relative w-full overflow-hidden hero header-hero"
       style={{
-        /* Clamp height: not too small on short screens, not overly tall on huge screens */
-        height: "clamp(40svh, 68svh, 78svh)",
-        minHeight: "360px",
-        maxHeight: "860px",
+        height: "clamp(44svh, 62svh, min(56.25vw, 86svh))",
+        maxHeight: "100svh",
       }}
     >
-      {/* Backdrop: prefer responsive video; graceful fallback to image */}
-      {showVideo ? (
-        <video
-          ref={videoRef}
-          className="absolute inset-0 h-full w-full object-cover hero-video"
-          autoPlay
-          muted
-          loop
-          playsInline
-          aria-hidden="true"
-          preload="none"
-          poster={poster}
-          disablePictureInPicture
-          onError={onVideoError}
-          onCanPlay={onCanPlay}
-        >
-          {/* Mobile-first source, then desktop as default */}
-          <source src={MOBILE_VIDEO} media="(max-width: 640px)" type="video/mp4" />
-          <source src={DESKTOP_VIDEO} type="video/mp4" />
-          {/* If browser doesn't support provided sources, fallback via onError won't trigger, so provide image below */}
-        </video>
-      ) : (
-        <img
-          src={movie.backdrop}
-          alt={`${movie.title} backdrop`}
-          className="absolute inset-0 h-full w-full object-cover object-center"
-          draggable="false"
-          loading="eager"
-        />
-      )}
+      <div className="aspect-16-9">
+        {showVideo ? (
+          <video
+            ref={videoRef}
+            className="media-cover"
+            autoPlay
+            muted
+            loop
+            playsInline
+            aria-hidden="true"
+            preload="none"
+            poster={poster}
+            disablePictureInPicture
+            onError={onVideoError}
+            onCanPlay={onCanPlay}
+          >
+            <source src={MOBILE_VIDEO} media="(max-width: 640px)" type="video/mp4" />
+            <source src={DESKTOP_VIDEO} type="video/mp4" />
+          </video>
+        ) : (
+          <img
+            src={movie.backdrop}
+            alt={`${movie.title} backdrop`}
+            className="media-cover"
+            draggable="false"
+            loading="eager"
+          />
+        )}
+      </div>
 
-      {/* Fallback image tag in a <noscript> for no-JS environments */}
-      <noscript>
-        <img
-          src={movie.backdrop}
-          alt={`${movie.title} backdrop`}
-          className="absolute inset-0 h-full w-full object-cover object-center"
-          draggable="false"
-        />
-      </noscript>
+      <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent pointer-events-none" aria-hidden="true" />
 
-      {/* Cinematic gradient overlays: bottom fade and subtle side vignette */}
-      <div className="absolute inset-0 bg-hero-fade pointer-events-none" aria-hidden="true" />
-      <div
-        className="absolute inset-0 bg-[radial-gradient(120%_100%_at_10%_50%,rgba(0,0,0,0.65),transparent_60%)] pointer-events-none"
-        aria-hidden="true"
-      />
-
-      {/* Content: include internal safe-top padding to avoid navbar overlap without shifting the whole page */}
-      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-5 md:px-6 lg:px-8 pt-24 md:pt-32">
-        <div className="max-w-3xl hero-overlay-fade hero-overlay-in">
-          <h1 className="text-4xl md:text-6xl font-extrabold text-white drop-shadow md:leading-[1.05] will-opacity">
+      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-5 md:px-6 lg:px-8 pt-24 md:pt-28">
+        <div className="max-w-3xl">
+          <h1 className="text-4xl md:text-6xl font-extrabold text-white drop-shadow md:leading-[1.05]">
             {movie.title}
           </h1>
-          <div className="mt-3 flex flex-wrap items-center gap-3 text-sm text-gray-200/90 will-opacity">
+          <div className="mt-3 flex flex-wrap items-center gap-3 text-sm text-gray-200/90">
             <span className="text-amber-300 font-semibold">
               {movie.rating ? `${movie.rating} Match` : "91% Match"}
             </span>
@@ -138,10 +102,10 @@ export default function HeroBanner({ movie }) {
             </span>
             <span className="text-gray-300/90">{movie.genre}</span>
           </div>
-          <p className="mt-3 md:mt-4 max-w-2xl text-base md:text-lg text-gray-200/90 will-opacity">
+          <p className="mt-3 md:mt-4 max-w-2xl text-base md:text-lg text-gray-200/90">
             {movie.description || "Dive into an immersive story set against the vast, mysterious ocean."}
           </p>
-          <div className="mt-6 flex gap-3 will-transform motion-transform">
+          <div className="mt-6 flex gap-3">
             <Button
               variant="secondary"
               aria-label={`Play ${movie.title}`}

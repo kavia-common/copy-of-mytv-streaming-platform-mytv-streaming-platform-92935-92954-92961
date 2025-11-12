@@ -7,9 +7,7 @@ import { useRemoteControl } from "../remote/RemoteControl";
 /**
  * PUBLIC_INTERFACE
  * TopNav
- * Simplified top bar showing brand and a right-side avatar when logged in.
- * Avatar shows the initial of the username and opens a small dropdown with Logout.
- * Integrates with TV remote focus via useFocusable.
+ * Fixed top bar with safe padding so it doesn't expand viewport height.
  */
 export default function TopNav() {
   const navigate = useNavigate();
@@ -19,7 +17,6 @@ export default function TopNav() {
   const btnRef = useRef(null);
   const menuRef = useRef(null);
 
-  // Example subscription placeholder; reserved for future color/info actions scoped to TopNav if needed
   useRemoteControl(() => false);
 
   useEffect(() => {
@@ -35,7 +32,6 @@ export default function TopNav() {
   const isLoggedIn = !!username;
   const sessionUser = isLoggedIn ? findUser(username) : null;
 
-  // Always declare hooks at top-level to satisfy rules-of-hooks
   const { focusableProps: avatarFocus } = useFocusable({
     id: "topnav-avatar",
     neighbors: { left: "topnav-login" },
@@ -60,7 +56,7 @@ export default function TopNav() {
   }, [open]);
 
   return (
-    <nav className="fixed top-0 left-0 right-0 z-40 bg-black/50 backdrop-blur-sm">
+    <nav className="fixed top-0 left-0 right-0 z-40 bg-black/50 backdrop-blur-sm navbar">
       <div className="mx-auto max-w-7xl px-4 sm:px-5 md:px-6 lg:px-8 py-3 flex items-center justify-between">
         <Link to="/home" className="text-2xl font-extrabold tracking-tight">
           <span className="text-white">My</span>
@@ -84,7 +80,7 @@ export default function TopNav() {
                 aria-haspopup="menu"
                 aria-expanded={open}
                 onClick={() => setOpen((o) => !o)}
-                className="h-9 w-9 rounded-full bg-white/15 ring-1 ring-white/10 text-sm text-white/90 flex items-center justify-center hover:bg-white/25 focus:outline-none focus:ring-2 focus:ring-amber-400"
+                className="h-9 w-9 rounded-full bg-white/15 ring-1 ring-white/10 text-sm text-white/90 flex items-center justify-center hover:bg白/25 focus:outline-none focus:ring-2 focus:ring-amber-400"
                 title={sessionUser?.username || "User"}
               >
                 {initial}

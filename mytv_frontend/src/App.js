@@ -22,28 +22,31 @@ import { AppSettingsProvider } from './context/SettingsContext';
  * App
  * Adds auth flows: /login, /forgot-pin, /signup and preserves existing routes.
  * RemoteControlProvider enables Samsung TV remote keys globally with normalized mapping.
+ * Wraps content in a viewport-safe container to prevent vertical stretching beyond 100svh.
  */
 function App() {
   return (
-    <BrowserRouter>
-      <FocusManagerProvider>
-        <AppSettingsProvider>
-          <RemoteControlProvider>
-            <Routes>
-              <Route path="/" element={<Splash />} />
-              <Route path="/home" element={<Home />} />
-              <Route path="/login" element={<Login />} />
-              <Route path="/forgot-pin" element={<ForgotPin />} />
-              <Route path="/signup" element={<SignUp />} />
-              <Route path="/settings" element={<Settings />} />
-              <Route path="/title/:id" element={<TitleDetail />} />
-              {/* Fallback to splash */}
-              <Route path="*" element={<Navigate to="/" replace />} />
-            </Routes>
-          </RemoteControlProvider>
-        </AppSettingsProvider>
-      </FocusManagerProvider>
-    </BrowserRouter>
+    <div className="app-wrapper">
+      <BrowserRouter>
+        <FocusManagerProvider>
+          <AppSettingsProvider>
+            <RemoteControlProvider>
+              <Routes>
+                <Route path="/" element={<Splash />} />
+                <Route path="/home" element={<Home />} />
+                <Route path="/login" element={<Login />} />
+                <Route path="/forgot-pin" element={<ForgotPin />} />
+                <Route path="/signup" element={<SignUp />} />
+                <Route path="/settings" element={<Settings />} />
+                <Route path="/title/:id" element={<TitleDetail />} />
+                {/* Fallback to splash */}
+                <Route path="*" element={<Navigate to="/" replace />} />
+              </Routes>
+            </RemoteControlProvider>
+          </AppSettingsProvider>
+        </FocusManagerProvider>
+      </BrowserRouter>
+    </div>
   );
 }
 

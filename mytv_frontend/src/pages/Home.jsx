@@ -11,8 +11,7 @@ import { ACTIONS, useRemoteControl } from "../remote/RemoteControl";
 /**
  * PUBLIC_INTERFACE
  * Home
- * Sticky translucent navbar, cinematic hero, and polished horizontal rails.
- * Maintains accessibility and TV remote navigation. Footer appears only on Home.
+ * Safe viewport container and clamped spacing. Ensures hero/rails never push beyond 100svh.
  */
 export default function Home() {
   const groups = useMemo(() => groupByGenre(movies), []);
@@ -21,31 +20,26 @@ export default function Home() {
   const railOrder = ["Trending", "Action", "Comedy", "Drama"];
   const { setFocus } = useFocusManager();
 
-  // Provide a root anchor to ensure TV remotes have an initial focusable if rails haven't mounted yet
   const { focusableProps: rootFocus } = useFocusable({
     id: "home-root",
     defaultFocused: true,
     onSelect: () => {
-      // If pressed Enter on root, move to first rail item
       setFocus("rail-0-item-0");
     },
   });
   const rootRef = useRef(null);
 
-  // Initialize default focus to first item of first rail
   useEffect(() => {
     const defaultId = `rail-0-item-0`;
     const t = setTimeout(() => setFocus(defaultId), 120);
     return () => clearTimeout(t);
   }, [setFocus]);
 
-  // Remote hook mainly to prevent default page scroll on arrow usage before rails focus is set
   useRemoteControl((action, e) => {
     if ([ACTIONS.UP, ACTIONS.DOWN, ACTIONS.LEFT, ACTIONS.RIGHT].includes(action)) {
       e?.preventDefault?.();
-      return false; // let default provider move focus
+      return false;
     }
-    // Back/Exit/Info handled by provider; Enter activates focused Rail item via focus manager
     return false;
   });
 
@@ -66,8 +60,7 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen bg-[color:var(--ocean-bg)] flex flex-col">
-      {/* Invisible anchor for initial focus to avoid browser default scrolling with arrows */}
+    <div className="page bg-[color:var(--ocean-bg)] text-white">
       <button
         {...rootFocus}
         ref={rootRef}
@@ -77,13 +70,11 @@ export default function Home() {
         Home Focus Anchor
       </button>
 
-      {/* Keep original NavBar (sections, etc.) and add TopNav avatar for auth */}
       <NavBar />
       <TopNav />
-      <main className="flex-1 pt-12 md:pt-14">
+      <main className="pt-14">
         <HeroBanner movie={featured} />
-        <div className="mt-1 space-y-2 max-w-7xl mx-auto w-full">
-          {/* Anchored sections for navbar hash links */}
+        <div className="mt-clamp space-y-2 max-w-7xl mx-auto w-full">
           <div id="tv">
             <Rail
               title="Trending"

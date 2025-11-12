@@ -2,6 +2,179 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Viewport-safe sizing and anti-stretch utilities */
+:root {
+  /* Safe viewport units to mitigate mobile browser UI chrome issues */
+  --vh: 1vh;
+  --svh: 1svh;
+  --lvh: 1lvh;
+
+  /* Layout clamps */
+  --app-min-h: calc(100 * var(--svh));
+  --app-max-h: 100lvh; /* logical viewport upper bound */
+  --app-content-max: 1000px; /* general content width guidance */
+  --gutter-xs: clamp(8px, 2.5vw, 16px);
+  --gutter-sm: clamp(12px, 3vw, 20px);
+  --gutter-md: clamp(16px, 4vw, 28px);
+  --gutter-lg: clamp(20px, 5vw, 40px);
+}
+
+/* Root app container constraints */
+html, body, #root {
+  height: auto;
+  min-height: var(--app-min-h);
+  max-height: var(--app-max-h);
+}
+
+body {
+  overscroll-behavior-y: none;
+  overflow-x: hidden;
+  background-color: #0b0b0f; /* ensure dark bg */
+  color: #fff;
+}
+
+/* Generic wrapper to avoid vertical stretching beyond 100svh */
+.app-wrapper,
+.app-shell,
+.screen,
+.page {
+  min-height: var(--app-min-h);
+  max-height: var(--app-max-h);
+  display: flex;
+  flex-direction: column;
+}
+
+/* Hero / preview area must not exceed viewport and should center */
+.hero,
+.preview,
+.banner,
+.header-hero {
+  position: relative;
+  min-height: min(56.25vw, var(--app-min-h)); /* scale with width, bounded by viewport height */
+  max-height: var(--app-min-h);
+  width: 100%;
+  overflow: hidden;
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
+/* Maintain 16:9 aspect ratio helper for hero sections */
+.hero-aspect,
+.preview-aspect,
+.aspect-16-9 {
+  aspect-ratio: 16 / 9;
+  width: 100%;
+  max-height: var(--app-min-h);
+}
+
+/* Media inside hero/preview: cover by default */
+.hero img,
+.hero video,
+.preview img,
+.preview video,
+.banner img,
+.banner video,
+.header-hero img,
+.header-hero video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* Utility classes for components needing contain instead of cover */
+.media-contain {
+  object-fit: contain !important;
+  background-color: #000; /* letterboxing */
+}
+
+/* Clamp paddings/margins for small and ultra-wide viewports */
+.section,
+.rail,
+.footer,
+.navbar,
+.topnav {
+  padding-left: var(--gutter-sm);
+  padding-right: var(--gutter-sm);
+}
+
+.section--tight {
+  padding-left: var(--gutter-xs);
+  padding-right: var(--gutter-xs);
+}
+
+.mt-clamp {
+  margin-top: var(--gutter-md);
+}
+.mb-clamp {
+  margin-bottom: var(--gutter-md);
+}
+.pt-clamp {
+  padding-top: var(--gutter-md);
+}
+.pb-clamp {
+  padding-bottom: var(--gutter-md);
+}
+
+@media (min-width: 1280px) {
+  .section,
+  .rail,
+  .footer,
+  .navbar,
+  .topnav {
+    padding-left: var(--gutter-lg);
+    padding-right: var(--gutter-lg);
+  }
+}
+
+/* Prevent any component from pushing beyond 100svh unintentionally */
+.full-height,
+.fullscreen,
+.fill-screen {
+  min-height: var(--app-min-h);
+  max-height: var(--app-min-h);
+}
+
+/* Splash screen defaults */
+.splash,
+.splash-screen {
+  min-height: var(--app-min-h);
+  max-height: var(--app-min-h);
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+}
+
+/* Rails should size content without affecting viewport height */
+.rail {
+  overflow: visible;
+  max-width: 100%;
+}
+.rail .rail-list {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(180px, 1fr);
+  gap: clamp(8px, 2.2vw, 16px);
+}
+
+/* Defensive: ensure any img/video tags scale properly site-wide */
+img, video {
+  max-width: 100%;
+  height: auto;
+}
+
+/* If wrapped inside a fit container, use cover without stretching vertically */
+.media-cover {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* Prevent accidental 100vh usage on mobile causing extra height */
+[class*="vh-"],
+[class*="min-h-screen"] {
+  max-height: var(--app-min-h);
+}
+
 /* Ocean Professional variables and dark-first palette */
 :root {
   --ocean-primary: #2563EB;
