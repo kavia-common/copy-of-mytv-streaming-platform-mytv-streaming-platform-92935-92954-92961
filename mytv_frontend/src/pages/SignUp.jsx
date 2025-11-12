@@ -3,22 +3,23 @@ import { useNavigate } from "react-router-dom";
 import TopNav from "../components/TopNav";
 import Button from "../components/Button";
 import { useFocusable, useFocusManager } from "../remote/focus/FocusContext";
-import { findUser, upsertUser, generatePin, createSession } from "../store/userStore";
+import { findUser, upsertUser, createSession } from "../store/userStore";
+import VirtualKeyboard from "../components/VirtualKeyboard";
 
 /**
  * PUBLIC_INTERFACE
  * SignUp
- * Username, Password, Confirm Password, and Mobile Number.
- * Generates a 4-digit PIN and saves alongside password and phone.
- * On success, auto logs in and redirects to /home.
+ * Username, 4-digit PIN, Confirm PIN, and Mobile Number.
+ * Validates PIN format and match; persists to localStorage. Auto logs in.
  */
 export default function SignUp() {
   const [username, setUsername] = useState("");
-  const [pwd, setPwd] = useState("");
-  const [confirmPwd, setConfirmPwd] = useState("");
+  const [pin, setPin] = useState("");
+  const [confirmPin, setConfirmPin] = useState("");
   const [phone, setPhone] = useState("");
   const [error, setError] = useState("");
   const [info, setInfo] = useState("");
+  const [activeField, setActiveField] = useState("username"); // 'username' | 'pin' | 'confirm' | 'phone'
   const navigate = useNavigate();
   const { setFocus } = useFocusManager();
 
@@ -29,24 +30,36 @@ export default function SignUp() {
 
   const { focusableProps: uFocus } = useFocusable({
     id: "signup-username",
-    neighbors: { down: "signup-password" },
-    onSelect: () => uRef.current?.focus?.(),
+    neighbors: { down: "signup-pin", right: "vk-username-r0-c0" },
+    onSelect: () => {
+      setActiveField("username");
+      uRef.current?.focus?.();
+    },
     defaultFocused: true,
   });
   const { focusableProps: pFocus } = useFocusable({
-    id: "signup-password",
-    neighbors: { up: "signup-username", down: "signup-confirm" },
-    onSelect: () => pRef.current?.focus?.(),
+    id: "signup-pin",
+    neighbors: { up: "signup-username", down: "signup-confirm", right: "vk-pin-r0-c0" },
+    onSelect: () => {
+      setActiveField("pin");
+      pRef.current?.focus?.();
+    },
   });
   const { focusableProps: cFocus } = useFocusable({
     id: "signup-confirm",
-    neighbors: { up: "signup-password", down: "signup-phone" },
-    onSelect: () => cRef.current?.focus?.(),
+    neighbors: { up: "signup-pin", down: "signup-phone", right: "vk-confirm-r0-c0" },
+    onSelect: () => {
+      setActiveField("confirm");
+      cRef.current?.focus?.();
+    },
   });
   const { focusableProps: phFocus } = useFocusable({
     id: "signup-phone",
     neighbors: { up: "signup-confirm", down: "signup-submit" },
-    onSelect: () => phRef.current?.focus?.(),
+    onSelect: () => {
+      setActiveField("phone");
+      phRef.current?.focus?.();
+    },
   });
   const { focusableProps: sFocus } = useFocusable({
     id: "signup-submit",
@@ -72,12 +85,12 @@ export default function SignUp() {
       setError("Username already exists.");
       return;
     }
-    if (!pwd || pwd.length < 6) {
-      setError("Password must be at least 6 characters.");
+    if (!/^\d{4}$/.test(pin)) {
+      setError("PIN must be exactly 4 digits.");
       return;
     }
-    if (pwd !== confirmPwd) {
-      setError("Passwords do not match.");
+    if (pin !== confirmPin) {
+      setError("PIN and Confirm PIN do not match.");
       return;
     }
     if (!phone || !/^\+?[0-9]{7,15}$/.test(phone.replace(/\s|-/g, ""))) {
@@ -85,18 +98,64 @@ export default function SignUp() {
       return;
     }
 
-    const pin = generatePin();
-    upsertUser({ username, password: pwd, phone, pin });
-    setInfo(`Account created. Your PIN is ${pin}. You'll be signed in now.`);
+    upsertUser({ username, pin, phone });
+    setInfo("Account created successfully. Signing you in…");
     createSession(username);
     setTimeout(() => navigate("/home", { replace: true }), 600);
   }
+
+  // Virtual keyboard handlers
+  const handleUsernameKey = (k) => {
+    if (typeof k === "string") {
+      setUsername((prev) => (prev + k).slice(0, 64));
+      return;
+    }
+    const action = k?.action;
+    if (action === "backspace") setUsername((prev) => prev.slice(0, -1));
+    else if (action === "clear") setUsername("");
+    else if (action === "space") setUsername((prev) => (prev + " ").slice(0, 64));
+    else if (action === "done") {
+      setActiveField("pin");
+      setFocus("signup-pin");
+      pRef.current?.focus?.();
+    }
+  };
+  const handlePinKey = (k) => {
+    if (typeof k === "string") {
+      if (!/^\d$/.test(k)) return;
+      setPin((prev) => (prev + k).slice(0, 4));
+      return;
+    }
+    const action = k?.action;
+    if (action === "backspace") setPin((prev) => prev.slice(0, -1));
+    else if (action === "clear") setPin("");
+    else if (action === "done") {
+      setActiveField("confirm");
+      setFocus("signup-confirm");
+      cRef.current?.focus?.();
+    }
+  };
+  const handleConfirmKey = (k) => {
+    if (typeof k === "string") {
+      if (!/^\d$/.test(k)) return;
+      setConfirmPin((prev) => (prev + k).slice(0, 4));
+      return;
+    }
+    const action = k?.action;
+    if (action === "backspace") setConfirmPin((prev) => prev.slice(0, -1));
+    else if (action === "clear") setConfirmPin("");
+    else if (action === "done") {
+      setActiveField("phone");
+      setFocus("signup-phone");
+      phRef.current?.focus?.();
+    }
+  };
 
   return (
     <div className="min-h-screen bg-[color:var(--ocean-bg)] flex flex-col">
       <TopNav />
       <main className="pt-20 md:pt-24 flex-1 flex items-center justify-center px-4">
-        <div className="w-full max-w-md rounded-xl bg-[color:var(--ocean-surface)]/80 p-6 md:p-8 ring-1 ring-white/10 shadow-soft">
+        <div className="w-full max-w-2xl rounded-xl bg-[color:var(--ocean-surface)]/80 p-6 md:p-8 ring-1 ring-white/10 shadow-soft">
           <div className="mb-4 text-center">
             <h1 className="text-2xl font-bold text-white">Create your account</h1>
             <p className="mt-1 text-sm text-gray-300">Sign up for MyTV</p>
@@ -113,44 +172,52 @@ export default function SignUp() {
                 type="text"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
-                className="w-full rounded-md border border-white/10 bg-black/50 px-3 py-2 text-gray-100 placeholder-gray-400 focus:border-blue-500 focus:outline-none"
+                onFocus={() => setActiveField("username")}
+                className={`w-full rounded-md border ${activeField === "username" ? "border-blue-500" : "border-white/10"} bg-black/50 px-3 py-2 text-gray-100 placeholder-gray-400 focus:border-blue-500 focus:outline-none`}
                 placeholder="Choose a username"
                 required
               />
             </div>
             <div {...pFocus}>
-              <label htmlFor="su-password" className="block text-sm text-gray-300 mb-1">
-                Password
+              <label htmlFor="su-pin" className="block text-sm text-gray-300 mb-1">
+                4-digit PIN
               </label>
               <input
                 ref={pRef}
-                id="su-password"
+                id="su-pin"
                 type="password"
-                value={pwd}
-                onChange={(e) => setPwd(e.target.value)}
-                className="w-full rounded-md border border-white/10 bg-black/50 px-3 py-2 text-gray-100 placeholder-gray-400 focus:border-blue-500 focus:outline-none"
-                placeholder="••••••••"
-                minLength={6}
+                inputMode="numeric"
+                pattern="\d{4}"
+                maxLength={4}
+                value={pin}
+                onChange={(e) => setPin(e.target.value.replace(/\D/g, "").slice(0, 4))}
+                onFocus={() => setActiveField("pin")}
+                className={`w-full tracking-widest rounded-md border ${activeField === "pin" ? "border-blue-500" : "border-white/10"} bg-black/50 px-3 py-2 text-gray-100 placeholder-gray-400 focus:border-blue-500 focus:outline-none`}
+                placeholder="••••"
                 required
-                autoComplete="new-password"
               />
             </div>
             <div {...cFocus}>
               <label htmlFor="su-confirm" className="block text-sm text-gray-300 mb-1">
-                Confirm Password
+                Confirm PIN
               </label>
               <input
                 ref={cRef}
                 id="su-confirm"
                 type="password"
-                value={confirmPwd}
-                onChange={(e) => setConfirmPwd(e.target.value)}
-                className="w-full rounded-md border border-white/10 bg-black/50 px-3 py-2 text-gray-100 placeholder-gray-400 focus:border-blue-500 focus:outline-none"
-                placeholder="••••••••"
-                minLength={6}
+                inputMode="numeric"
+                pattern="\d{4}"
+                maxLength={4}
+                value={confirmPin}
+                onChange={(e) => setConfirmPin(e.target.value.replace(/\D/g, "").slice(0, 4))}
+                onFocus={() => setActiveField("confirm")}
+                className={`w-full tracking-widest rounded-md border ${activeField === "confirm" ? "border-blue-500" : "border-white/10"} bg-black/50 px-3 py-2 text-gray-100 placeholder-gray-400 focus:border-blue-500 focus:outline-none`}
+                placeholder="••••"
                 required
-                autoComplete="new-password"
               />
+              {confirmPin && pin && confirmPin !== pin && (
+                <div className="mt-1 text-xs text-red-400">PINs do not match.</div>
+              )}
             </div>
             <div {...phFocus}>
               <label htmlFor="su-phone" className="block text-sm text-gray-300 mb-1">
@@ -163,7 +230,8 @@ export default function SignUp() {
                 inputMode="tel"
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
-                className="w-full rounded-md border border-white/10 bg-black/50 px-3 py-2 text-gray-100 placeholder-gray-400 focus:border-blue-500 focus:outline-none"
+                onFocus={() => setActiveField("phone")}
+                className={`w-full rounded-md border ${activeField === "phone" ? "border-blue-500" : "border-white/10"} bg-black/50 px-3 py-2 text-gray-100 placeholder-gray-400 focus:border-blue-500 focus:outline-none`}
                 placeholder="+1234567890"
                 required
               />
@@ -176,6 +244,46 @@ export default function SignUp() {
               <Button type="submit" className="w-full">Create Account</Button>
             </div>
           </form>
+
+          {/* Virtual keyboards */}
+          <div className="mt-6">
+            {activeField === "username" && (
+              <VirtualKeyboard
+                idBase="vk-username"
+                mode="alphanumeric"
+                onKey={handleUsernameKey}
+                onDone={() => {
+                  setActiveField("pin");
+                  setFocus("signup-pin");
+                  pRef.current?.focus?.();
+                }}
+              />
+            )}
+            {activeField === "pin" && (
+              <VirtualKeyboard
+                idBase="vk-pin"
+                mode="numeric"
+                onKey={handlePinKey}
+                onDone={() => {
+                  setActiveField("confirm");
+                  setFocus("signup-confirm");
+                  cRef.current?.focus?.();
+                }}
+              />
+            )}
+            {activeField === "confirm" && (
+              <VirtualKeyboard
+                idBase="vk-confirm"
+                mode="numeric"
+                onKey={handleConfirmKey}
+                onDone={() => {
+                  setActiveField("phone");
+                  setFocus("signup-phone");
+                  phRef.current?.focus?.();
+                }}
+              />
+            )}
+          </div>
 
           <div className="mt-4">
             <Button variant="ghost" className="w-full" onClick={() => navigate("/login")}>

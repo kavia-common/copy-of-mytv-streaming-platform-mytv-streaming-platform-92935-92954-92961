@@ -4,19 +4,20 @@ import Button from "../components/Button";
 import { useFocusable, useFocusManager } from "../remote/focus/FocusContext";
 import TopNav from "../components/TopNav";
 import { validateCredentials, createSession, getSession } from "../store/userStore";
+import VirtualKeyboard from "../components/VirtualKeyboard";
 
 /**
  * PUBLIC_INTERFACE
  * Login
- * Username + 4-digit PIN primary login (also supports password). TV remote friendly.
+ * Username + 4-digit PIN primary login. TV remote friendly with on-screen keyboard for username and PIN.
  * Shows error messages for invalid combinations and links to Forgot Pin and Sign Up.
  */
 export default function Login() {
   const [username, setUsername] = useState("");
   const [pin, setPin] = useState("");
-  const [password, setPassword] = useState("");
-  const [mode, setMode] = useState("pin"); // 'pin' | 'password'
+  const [mode, setMode] = useState("pin"); // kept to preserve password toggle UI, but we'll default to pin
   const [error, setError] = useState("");
+  const [activeField, setActiveField] = useState("username"); // 'username' | 'pin'
   const navigate = useNavigate();
   const { setFocus } = useFocusManager();
 
@@ -30,13 +31,15 @@ export default function Login() {
 
   function onSubmit(e) {
     e.preventDefault?.();
-    const creds = { username };
-    if (mode === "pin") creds.pin = pin;
-    else creds.password = password;
-
+    // enforce pin as 4 digits when using PIN mode
+    if (activeField === "pin" && pin.length !== 4) {
+      setError("PIN must be 4 digits.");
+      return;
+    }
+    const creds = { username, pin };
     const valid = validateCredentials(creds);
     if (!valid) {
-      setError(mode === "pin" ? "Incorrect username or PIN" : "Incorrect username or password");
+      setError("Incorrect username or PIN");
       return;
     }
     setError("");
@@ -46,28 +49,28 @@ export default function Login() {
 
   const userRef = useRef(null);
   const pinRef = useRef(null);
-  const pwdRef = useRef(null);
   const submitRef = useRef(null);
 
   const { focusableProps: userFocus } = useFocusable({
     id: "login-username",
-    neighbors: { down: mode === "pin" ? "login-pin" : "login-password" },
-    onSelect: () => userRef.current?.focus?.(),
+    neighbors: { down: "login-pin", right: "vk-username-r0-c0" },
+    onSelect: () => {
+      setActiveField("username");
+      userRef.current?.focus?.();
+    },
     defaultFocused: true,
   });
   const { focusableProps: pinFocus } = useFocusable({
     id: "login-pin",
-    neighbors: { up: "login-username", down: "login-submit" },
-    onSelect: () => pinRef.current?.focus?.(),
-  });
-  const { focusableProps: pwdFocus } = useFocusable({
-    id: "login-password",
-    neighbors: { up: "login-username", down: "login-submit" },
-    onSelect: () => pwdRef.current?.focus?.(),
+    neighbors: { up: "login-username", down: "login-submit", right: "vk-pin-r0-c0" },
+    onSelect: () => {
+      setActiveField("pin");
+      pinRef.current?.focus?.();
+    },
   });
   const { focusableProps: submitFocus } = useFocusable({
     id: "login-submit",
-    neighbors: { up: mode === "pin" ? "login-pin" : "login-password" },
+    neighbors: { up: "login-pin" },
     onSelect: () => onSubmit({ preventDefault: () => {} }),
   });
   const { focusableProps: forgotFocus } = useFocusable({
@@ -81,18 +84,48 @@ export default function Login() {
     onSelect: () => navigate("/signup"),
   });
 
-  // Keep focus chain consistent when switching mode
+  // Keep focus chain consistent
   useEffect(() => {
     const t = setTimeout(() => setFocus("login-username"), 0);
     return () => clearTimeout(t);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mode]);
+  }, [setFocus]);
+
+  // Keyboard handlers
+  const handleUsernameKey = (k) => {
+    if (typeof k === "string") {
+      setUsername((prev) => (prev + k).slice(0, 64));
+      return;
+    }
+    const action = k?.action;
+    if (action === "backspace") setUsername((prev) => prev.slice(0, -1));
+    else if (action === "clear") setUsername("");
+    else if (action === "space") setUsername((prev) => (prev + " ").slice(0, 64));
+    else if (action === "done") {
+      // move to PIN
+      setActiveField("pin");
+      setFocus("login-pin");
+      pinRef.current?.focus?.();
+    }
+  };
+  const handlePinKey = (k) => {
+    if (typeof k === "string") {
+      if (!/^\d$/.test(k)) return;
+      setPin((prev) => (prev + k).slice(0, 4));
+      return;
+    }
+    const action = k?.action;
+    if (action === "backspace") setPin((prev) => prev.slice(0, -1));
+    else if (action === "clear") setPin("");
+    else if (action === "done") {
+      onSubmit({ preventDefault: () => {} });
+    }
+  };
 
   return (
     <div className="min-h-screen bg-[color:var(--ocean-bg)] flex flex-col">
       <TopNav />
       <main className="pt-20 md:pt-24 flex-1 flex items-center justify-center px-4">
-        <div className="w-full max-w-md rounded-xl bg-[color:var(--ocean-surface)]/80 p-6 md:p-8 ring-1 ring-white/10 shadow-soft">
+        <div className="w-full max-w-2xl rounded-xl bg-[color:var(--ocean-surface)]/80 p-6 md:p-8 ring-1 ring-white/10 shadow-soft">
           <div className="mb-4 text-center">
             <h1 className="text-2xl font-bold text-white">Welcome back</h1>
             <p className="mt-1 text-sm text-gray-300">Sign in with your username and 4-digit PIN</p>
@@ -109,74 +142,37 @@ export default function Login() {
                 type="text"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
-                className="w-full rounded-md border border-white/10 bg-black/50 px-3 py-2 text-gray-100 placeholder-gray-400 focus:border-blue-500 focus:outline-none"
+                onFocus={() => setActiveField("username")}
+                className={`w-full rounded-md border ${activeField === "username" ? "border-blue-500" : "border-white/10"} bg-black/50 px-3 py-2 text-gray-100 placeholder-gray-400 focus:border-blue-500 focus:outline-none`}
                 placeholder="Your username"
                 autoComplete="username"
                 required
               />
             </div>
 
-            {/* Toggle between PIN and Password input for flexibility */}
-            <div className="flex items-center gap-3 text-xs text-gray-300">
-              <span>Use:</span>
-              <button
-                type="button"
-                className={`rounded px-2 py-1 ${mode === "pin" ? "bg-ocean-primary text-white" : "bg-white/10 text-gray-200 hover:bg-white/20"}`}
-                onClick={() => setMode("pin")}
-              >
-                PIN
-              </button>
-              <button
-                type="button"
-                className={`rounded px-2 py-1 ${mode === "password" ? "bg-ocean-primary text-white" : "bg-white/10 text-gray-200 hover:bg-white/20"}`}
-                onClick={() => setMode("password")}
-              >
-                Password
-              </button>
+            <div {...pinFocus}>
+              <label htmlFor="pin" className="block text-sm text-gray-300 mb-1">
+                4-digit PIN
+              </label>
+              <input
+                ref={pinRef}
+                id="pin"
+                type="password"
+                inputMode="numeric"
+                pattern="[0-9]*"
+                maxLength={4}
+                value={pin}
+                onChange={(e) => {
+                  const v = e.target.value.replace(/\D/g, "").slice(0, 4);
+                  setPin(v);
+                }}
+                onFocus={() => setActiveField("pin")}
+                className={`w-full tracking-widest rounded-md border ${activeField === "pin" ? "border-blue-500" : "border-white/10"} bg-black/50 px-3 py-2 text-gray-100 placeholder-gray-400 focus:border-blue-500 focus:outline-none`}
+                placeholder="••••"
+                autoComplete="one-time-code"
+                required
+              />
             </div>
-
-            {mode === "pin" ? (
-              <div {...pinFocus}>
-                <label htmlFor="pin" className="block text-sm text-gray-300 mb-1">
-                  4-digit PIN
-                </label>
-                <input
-                  ref={pinRef}
-                  id="pin"
-                  type="password"
-                  inputMode="numeric"
-                  pattern="[0-9]*"
-                  maxLength={4}
-                  value={pin}
-                  onChange={(e) => {
-                    const v = e.target.value.replace(/\D/g, "").slice(0, 4);
-                    setPin(v);
-                  }}
-                  className="w-full tracking-widest rounded-md border border-white/10 bg-black/50 px-3 py-2 text-gray-100 placeholder-gray-400 focus:border-blue-500 focus:outline-none"
-                  placeholder="••••"
-                  autoComplete="one-time-code"
-                  required
-                />
-              </div>
-            ) : (
-              <div {...pwdFocus}>
-                <label htmlFor="password" className="block text-sm text-gray-300 mb-1">
-                  Password
-                </label>
-                <input
-                  ref={pwdRef}
-                  id="password"
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="w-full rounded-md border border-white/10 bg-black/50 px-3 py-2 text-gray-100 placeholder-gray-400 focus:border-blue-500 focus:outline-none"
-                  placeholder="••••••••"
-                  minLength={6}
-                  autoComplete="current-password"
-                  required
-                />
-              </div>
-            )}
 
             {error && <div className="rounded-md bg-red-500/10 p-2 text-sm text-red-400">{error}</div>}
 
@@ -192,7 +188,7 @@ export default function Login() {
                 className="text-gray-200 hover:text-white focus:outline-none focus:ring-2 focus:ring-amber-400 rounded px-1"
                 {...forgotFocus}
               >
-                Forgot Pin
+                Forgot PIN
               </Link>
               <Link
                 to="/signup"
@@ -203,6 +199,31 @@ export default function Login() {
               </Link>
             </div>
           </form>
+
+          {/* Virtual keyboard area: shows alpha for username active, numeric for pin active */}
+          <div className="mt-6">
+            {activeField === "username" ? (
+              <VirtualKeyboard
+                idBase="vk-username"
+                mode="alphanumeric"
+                onKey={handleUsernameKey}
+                onDone={() => {
+                  setActiveField("pin");
+                  setFocus("login-pin");
+                  pinRef.current?.focus?.();
+                }}
+                defaultFocused={false}
+              />
+            ) : (
+              <VirtualKeyboard
+                idBase="vk-pin"
+                mode="numeric"
+                onKey={handlePinKey}
+                onDone={() => onSubmit({ preventDefault: () => {} })}
+                defaultFocused={false}
+              />
+            )}
+          </div>
 
           <div className="mt-4 text-center">
             <Link to="/home" className="text-xs text-gray-400 hover:text-gray-200">

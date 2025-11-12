@@ -1,9 +1,14 @@
-//
-// PUBLIC_INTERFACE
-// Local user and session store utilities using localStorage only.
-// No backend calls. Used by Login, ForgotPin, SignUp, and TopNav avatar.
-//
-const USERS_KEY = "mytv_user"; // array of { username, password, pin, phone }
+/**
+ * PUBLIC_INTERFACE
+ * Local user and session store utilities using localStorage only.
+ * No backend calls. Used by Login, ForgotPin, SignUp, and TopNav avatar.
+ *
+ * Notes:
+ * - Users are stored as objects: { username, pin, phone, password? }
+ * - PIN is a 4-digit string and is the primary credential for TV login.
+ * - Password remains optional/backward-compatible for legacy flows.
+ */
+const USERS_KEY = "mytv_user"; // array of { username, pin, phone, password? }
 const SESSION_KEY = "mytv_session"; // { username }
 
 /**
