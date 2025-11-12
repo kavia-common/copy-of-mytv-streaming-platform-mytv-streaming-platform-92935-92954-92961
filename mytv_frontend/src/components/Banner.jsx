@@ -11,7 +11,7 @@ import useRandomBanner from "./useRandomBanner";
  * - height: string CSS height with safe clamp default
  * - children: overlay content
  */
-export default function Banner({ image, alt = "Banner", height = "min(56rem, 80svh)", children }) {
+export default function Banner({ image, alt = "Banner", height = "clamp(220px, 56vw, min(80svh, 720px))", children }) {
   const { src } = useRandomBanner(image);
   const imgSrc = src || image || "/assets/banner-default.jpg";
 

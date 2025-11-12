@@ -31,9 +31,9 @@ export default function HeroBanner({ movie, bannerImage }) {
     <section
       className="relative w-full overflow-hidden hero header-hero"
       style={{
-        // Enforce responsive height with safe viewport clamps
-        height: "min(56rem, 80svh)",
-        maxHeight: "100svh",
+        /* Clamp height: min 220px, fluid with width, max 80svh capped at 720px */
+        height: "clamp(220px, 56vw, min(80svh, 720px))",
+        maxHeight: "min(80svh, 720px)",
       }}
     >
       {/* 16:9 holder ensures the media never distorts */}

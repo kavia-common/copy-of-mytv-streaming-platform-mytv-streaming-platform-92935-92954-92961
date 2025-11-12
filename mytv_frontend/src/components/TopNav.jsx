@@ -56,7 +56,7 @@ export default function TopNav() {
   }, [open]);
 
   return (
-    <nav className="fixed top-0 left-0 right-0 z-40 bg-black/50 backdrop-blur-sm navbar">
+    <nav className="fixed top-0 left-0 right-0 z-40 bg-black/50 backdrop-blur-sm navbar" style={{ height: '56px' }}>
       <div className="mx-auto max-w-7xl px-4 sm:px-5 md:px-6 lg:px-8 py-3 flex items-center justify-between">
         <Link to="/home" className="text-2xl font-extrabold tracking-tight">
           <span className="text-white">My</span>

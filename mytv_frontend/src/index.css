@@ -5,7 +5,6 @@
 /* Viewport-safe sizing and anti-stretch utilities */
 :root {
   /* Safe viewport units to mitigate mobile browser UI chrome issues */
-  --vh: 1vh;
   --svh: 1svh;
   --lvh: 1lvh;
 
@@ -17,20 +16,41 @@
   --gutter-sm: clamp(12px, 3vw, 20px);
   --gutter-md: clamp(16px, 4vw, 28px);
   --gutter-lg: clamp(20px, 5vw, 40px);
+
+  /* Theme palette */
+  --ocean-primary: #2563EB;
+  --ocean-secondary: #F59E0B;
+  --ocean-error: #EF4444;
+  --ocean-bg: #0b0b0b;       /* near-black Netflix-like */
+  --ocean-surface: #121212;  /* dark surfaces */
+  --ocean-text: #e5e7eb;     /* gray-200 */
+
+  /* Motion design tokens */
+  --ease-smooth: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-emphasized: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
+  --dur-fast: 150ms;
+  --dur-med: 300ms;
+  --dur-slow: 500ms;
+  --blur-weak: 6px;
+  --blur-strong: 12px;
 }
 
-/* Root app container constraints */
+/* Root app container constraints using safe viewport units */
 html, body, #root {
-  height: auto;
-  min-height: var(--app-min-h);
-  max-height: var(--app-max-h);
+  height: 100%;
+  min-height: 100svh;
+  max-height: 100lvh;
+  width: 100%;
+  overflow-x: hidden;
 }
 
+/* Base body styling */
 body {
   overscroll-behavior-y: none;
-  overflow-x: hidden;
-  background-color: #0b0b0f; /* ensure dark bg */
-  color: #fff;
+  background-color: var(--ocean-bg);
+  color: var(--ocean-text);
+  margin: 0;
 }
 
 /* Generic wrapper to avoid vertical stretching beyond 100svh */
@@ -50,14 +70,9 @@ body {
 .banner,
 .header-hero {
   position: relative;
-  min-height: min(56.25vw, var(--app-min-h)); /* scale with width, bounded by viewport height */
-  max-height: var(--app-min-h);
   width: 100%;
   overflow: hidden;
-  padding-top: 0;
-  padding-bottom: 0;
-  /* ensure stacking contexts for overlays and nav */
-  z-index: 0;
+  z-index: 0; /* ensure overlays sit correctly */
 }
 
 /* Maintain 16:9 aspect ratio helper for hero sections */
@@ -104,18 +119,10 @@ body {
   padding-right: var(--gutter-xs);
 }
 
-.mt-clamp {
-  margin-top: var(--gutter-md);
-}
-.mb-clamp {
-  margin-bottom: var(--gutter-md);
-}
-.pt-clamp {
-  padding-top: var(--gutter-md);
-}
-.pb-clamp {
-  padding-bottom: var(--gutter-md);
-}
+.mt-clamp { margin-top: var(--gutter-md); }
+.mb-clamp { margin-bottom: var(--gutter-md); }
+.pt-clamp { padding-top: var(--gutter-md); }
+.pb-clamp { padding-bottom: var(--gutter-md); }
 
 @media (min-width: 1280px) {
   .section,
@@ -144,6 +151,7 @@ body {
   display: grid;
   place-items: center;
   overflow: hidden;
+  position: relative;
 }
 
 /* Rails should size content without affecting viewport height */
@@ -177,39 +185,6 @@ img, video {
   max-height: var(--app-min-h);
 }
 
-/* Ocean Professional variables and dark-first palette */
-:root {
-  --ocean-primary: #2563EB;
-  --ocean-secondary: #F59E0B;
-  --ocean-error: #EF4444;
-  --ocean-bg: #0b0b0b;       /* near-black Netflix-like */
-  --ocean-surface: #121212;  /* dark surfaces */
-  --ocean-text: #e5e7eb;     /* gray-200 */
-
-  /* Motion design tokens */
-  --ease-smooth: cubic-bezier(0.22, 1, 0.36, 1);
-  --ease-emphasized: cubic-bezier(0.2, 0.8, 0.2, 1);
-  --ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
-  --dur-fast: 150ms;
-  --dur-med: 300ms;
-  --dur-slow: 500ms;
-  --blur-weak: 6px;
-  --blur-strong: 12px;
-}
-
-html, body, #root {
-  /* Use small viewport units for mobile browser UI chrome and ensure full-height content */
-  height: 100%;
-  min-height: 100svh;
-  width: 100%;
-  overflow-x: hidden; /* prevent accidental horizontal scroll causing stretched preview */
-}
-
-body {
-  @apply bg-[color:var(--ocean-bg)] text-[color:var(--ocean-text)] antialiased;
-  margin: 0;
-}
-
 /* Motion utilities (lightweight helpers leveraging CSS variables) */
 .motion-opacity {
   transition-property: opacity;
@@ -226,56 +201,34 @@ body {
   transition-duration: var(--dur-med);
   transition-timing-function: var(--ease-smooth);
 }
-.gpu {
-  transform: translateZ(0);
-  will-change: transform;
-}
-.will-opacity {
-  will-change: opacity;
-}
-.will-transform {
-  will-change: transform;
-}
+.gpu { transform: translateZ(0); will-change: transform; }
+.will-opacity { will-change: opacity; }
+.will-transform { will-change: transform; }
 
 /* Smooth scrolling experience for carousels */
 .rail-scroll {
   scroll-snap-type: x mandatory;
   -webkit-overflow-scrolling: touch;
   overscroll-behavior-x: contain;
+  padding-bottom: 0.25rem; /* small bottom padding but not inflate height */
 }
 
 /* Horizontal rail cards snap on mobile for better feel */
-.rail-item {
-  scroll-snap-align: start;
-}
+.rail-item { scroll-snap-align: start; }
 
 /* Improve focus treatment for TV / keyboard navigation */
 [data-focused="true"] {
   outline: none;
-  /* Mirror hover emphasis: ring + slight scale without animation jitter */
   box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.95), 0 20px 40px -20px rgba(0,0,0,0.6);
-  border-radius: 0.5rem; /* slightly more rounded for media tiles */
+  border-radius: 0.5rem;
 }
 [data-focused="true"]:focus-visible {
   box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.95), 0 24px 48px -24px rgba(0,0,0,0.65);
 }
-/* Ensure visible focus for inputs/buttons when focused via remote script or keyboard */
 input:focus-visible, button:focus-visible, a:focus-visible, select:focus-visible {
   outline: none;
   box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.9), 0 12px 24px -12px rgba(0,0,0,0.6);
   border-radius: 0.5rem;
-}
-
-/* Helper: subtle chevron reveal animation */
-.rail-chevron {
-  opacity: 0;
-  transform: translateY(2px);
-  transition: opacity var(--dur-med) var(--ease-standard), transform var(--dur-med) var(--ease-smooth);
-  will-change: opacity, transform;
-}
-.rail-chevron-show {
-  opacity: 1;
-  transform: translateY(0);
 }
 
 /* Nav translucency/blur intensities */
@@ -287,8 +240,6 @@ input:focus-visible, button:focus-visible, a:focus-visible, select:focus-visible
   background-color: rgba(0,0,0,0.68);
   backdrop-filter: saturate(160%) blur(var(--blur-weak));
 }
-
-/* Stronger blur variant when scrolled deeper */
 .nav-solid-strong {
   background-color: rgba(0,0,0,0.72);
   backdrop-filter: saturate(180%) blur(var(--blur-strong));
@@ -299,18 +250,10 @@ input:focus-visible, button:focus-visible, a:focus-visible, select:focus-visible
   opacity: 0;
   transition: opacity var(--dur-slow) var(--ease-emphasized);
   will-change: opacity;
-  object-fit: cover;       /* maintain aspect, cover hero area */
+  object-fit: cover;
   object-position: center;
 }
-.hero-video-ready {
-  opacity: 1;
-}
-
-/* Ensure any media used as backgrounds/preview maintain aspect ratio */
-img, video {
-  max-width: 100%;
-  height: auto; /* default: do not stretch vertically unless explicitly sized */
-}
+.hero-video-ready { opacity: 1; }
 
 /* Container width constraints to avoid overly wide content on desktops */
 .container,
@@ -338,14 +281,7 @@ img, video {
   height: 100%;
 }
 
-/* Rails: make sure cards align and not stretch the scroll area height */
-.rail-scroll {
-  scroll-snap-type: x mandatory;
-  -webkit-overflow-scrolling: touch;
-  overscroll-behavior-x: contain;
-  padding-bottom: 0.25rem; /* keep small bottom padding but not inflate height */
-}
-
+/* Hero overlay entrance */
 .hero-overlay-fade {
   opacity: 0;
   transform: translateY(6px);

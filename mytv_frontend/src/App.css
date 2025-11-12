@@ -5,19 +5,20 @@
   --app-bg: #0b0b0b;
   --app-surface: #121212;
   --app-text: #e5e7eb;
+  --topnav-h: 56px; /* fixed TopNav height used for layout calc below */
 }
 
-.App {
+.App, .app-wrapper {
   background-color: var(--app-bg);
   color: var(--app-text);
   min-height: var(--app-min-h);
 }
 
-.navbackdrop {
-  backdrop-filter: saturate(160%) blur(6px);
-}
+/* Backdrop utility */
+.navbackdrop { backdrop-filter: saturate(160%) blur(6px); }
 
-/* Ensure footer doesn't overlap content on small screens when using fixed/sticky elements */
+/* Ensure content area doesn't hide behind fixed TopNav */
 main {
-  min-height: 60svh;
+  padding-top: var(--topnav-h);
+  min-height: calc(100svh - var(--topnav-h));
 }
