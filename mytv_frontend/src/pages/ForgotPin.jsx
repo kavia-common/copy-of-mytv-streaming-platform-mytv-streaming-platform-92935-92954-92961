@@ -59,6 +59,20 @@ export default function ForgotPin() {
     return () => clearTimeout(t);
   }, [setFocus]);
 
+  // Also prevent default page scroll on arrows; allow provider defaults otherwise.
+  useRemoteControl((action, e) => {
+    if ([ACTIONS.UP, ACTIONS.DOWN, ACTIONS.LEFT, ACTIONS.RIGHT].includes(action)) {
+      e?.preventDefault?.();
+      return false;
+    }
+    if (action === ACTIONS.EXIT) {
+      navigate("/", { replace: true });
+      e?.preventDefault?.();
+      return true;
+    }
+    return false;
+  });
+
   function onSubmit(e) {
     e.preventDefault?.();
     setResultPin("");

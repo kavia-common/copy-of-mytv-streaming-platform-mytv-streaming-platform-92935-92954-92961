@@ -1,22 +1,72 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
+import { ACTIONS, useRemoteControl } from "../remote/RemoteControl";
+import { useFocusable, useFocusManager } from "../remote/focus/FocusContext";
 
 /**
  * PUBLIC_INTERFACE
  * Splash
  * Minimalist dark splash with animated brand fade-in. No buttons/CTAs are rendered.
  * Auto-redirects to /home shortly after mount, preserving existing navigation flow.
+ * Integrates remote keys: arrows initialize focus, Enter goes Home, Back handled by provider, Exit -> root.
  */
 export default function Splash() {
   const navigate = useNavigate();
+  const { setFocus } = useFocusManager();
 
+  // Provide a single hidden focusable for TV remotes so arrow keys have a target immediately.
+  const { focusableProps } = useFocusable({
+    id: "splash-root",
+    onSelect: () => navigate("/home"),
+    defaultFocused: true,
+  });
+  const focusRef = useRef(null);
+
+  // Auto-redirect after short delay
   useEffect(() => {
     const t = setTimeout(() => navigate("/home"), 1600);
     return () => clearTimeout(t);
   }, [navigate]);
 
+  // Subscribe to remote keys for explicit handling on splash
+  useRemoteControl((action, e) => {
+    switch (action) {
+      case ACTIONS.ENTER:
+        navigate("/home", { replace: true });
+        e?.preventDefault?.();
+        return true;
+      case ACTIONS.UP:
+      case ACTIONS.DOWN:
+      case ACTIONS.LEFT:
+      case ACTIONS.RIGHT:
+        // Ensure our root gets focus so arrows don't scroll the page
+        setFocus("splash-root");
+        e?.preventDefault?.();
+        return true;
+      case ACTIONS.BACK:
+        // Let provider decide (it will route to login/home appropriately)
+        return false;
+      case ACTIONS.EXIT:
+        navigate("/", { replace: true });
+        e?.preventDefault?.();
+        return true;
+      default:
+        return false;
+    }
+  });
+
   return (
     <div className="min-h-screen flex flex-col justify-between relative overflow-hidden bg-[color:var(--ocean-bg)]">
+      {/* Hidden/transparent focus anchor for TV navigation */}
+      <button
+        {...focusableProps}
+        ref={focusRef}
+        aria-hidden="true"
+        className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-50 focus:px-2 focus:py-1 focus:rounded focus:bg-black/60 focus:text-white"
+      >
+        Splash Focus Anchor
+      </button>
+
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(37,99,235,0.12),transparent_40%),radial-gradient(circle_at_80%_80%,rgba(245,158,11,0.12),transparent_40%)]" />
       <div className="relative z-10 flex-1 flex items-center justify-center">
         <div className="text-center px-6 animate-[fadeIn_800ms_ease-out_forwards] opacity-0">

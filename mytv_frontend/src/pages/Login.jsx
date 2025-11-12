@@ -103,6 +103,20 @@ export default function Login() {
     return () => clearTimeout(t);
   }, [setFocus]);
 
+  // Also prevent page scroll on arrows; Exit returns to root
+  useRemoteControl((action, e) => {
+    if ([ACTIONS.UP, ACTIONS.DOWN, ACTIONS.LEFT, ACTIONS.RIGHT].includes(action)) {
+      e?.preventDefault?.();
+      return false;
+    }
+    if (action === ACTIONS.EXIT) {
+      navigate("/", { replace: true });
+      e?.preventDefault?.();
+      return true;
+    }
+    return false;
+  });
+
   // Focus-aware VirtualKeyboard handlers using new onKeyPress API
   const handleUsernameKey = (valOrMeta) => {
     const isMeta = typeof valOrMeta === "object" && valOrMeta && valOrMeta.action;

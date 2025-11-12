@@ -7,6 +7,7 @@ import Button from "../components/Button";
 import PlayerOverlay from "../components/PlayerOverlay";
 import { movies } from "../data/movies";
 import { useFocusable } from "../remote/focus/FocusContext";
+import { ACTIONS, useRemoteControl } from "../remote/RemoteControl";
 
 /**
  * PUBLIC_INTERFACE
@@ -91,6 +92,21 @@ export default function TitleDetail() {
     }, 50);
     return () => clearTimeout(t);
   }, [setFocus]);
+
+  // Remote key subscription: prevent page scroll on arrows; let provider handle focus moves and Back.
+  useRemoteControl((action, e) => {
+    if ([ACTIONS.UP, ACTIONS.DOWN, ACTIONS.LEFT, ACTIONS.RIGHT].includes(action)) {
+      e?.preventDefault?.();
+      return false;
+    }
+    if (action === ACTIONS.EXIT) {
+      // Exit to root (splash)
+      navigate("/", { replace: true });
+      e?.preventDefault?.();
+      return true;
+    }
+    return false;
+  });
 
   // Helper UI when not found
   const NotFound = () => (

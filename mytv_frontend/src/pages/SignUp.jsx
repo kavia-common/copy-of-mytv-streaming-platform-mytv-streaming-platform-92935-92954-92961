@@ -5,7 +5,7 @@ import Button from "../components/Button";
 import { useFocusable, useFocusManager } from "../remote/focus/FocusContext";
 import { findUser, upsertUser, createSession } from "../store/userStore";
 import VirtualKeyboard from "../components/VirtualKeyboard";
-import { useRemoteControl } from "../remote/RemoteControl";
+import { ACTIONS, useRemoteControl } from "../remote/RemoteControl";
 
 /**
  * PUBLIC_INTERFACE
@@ -89,6 +89,20 @@ export default function SignUp() {
     const t = setTimeout(() => setFocus("signup-username"), 0);
     return () => clearTimeout(t);
   }, [setFocus]);
+
+  // Prevent page scroll on arrows, Exit -> root; other keys use provider defaults
+  useRemoteControl((action, e) => {
+    if ([ACTIONS.UP, ACTIONS.DOWN, ACTIONS.LEFT, ACTIONS.RIGHT].includes(action)) {
+      e?.preventDefault?.();
+      return false;
+    }
+    if (action === ACTIONS.EXIT) {
+      navigate("/", { replace: true });
+      e?.preventDefault?.();
+      return true;
+    }
+    return false;
+  });
 
   function onSubmit(e) {
     e.preventDefault?.();

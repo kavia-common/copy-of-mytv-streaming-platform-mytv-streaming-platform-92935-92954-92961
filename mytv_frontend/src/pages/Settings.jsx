@@ -3,6 +3,7 @@ import NavBar from "../components/NavBar";
 import TopNav from "../components/TopNav";
 import { useAppSettings } from "../context/SettingsContext";
 import { useFocusable } from "../remote/focus/FocusContext";
+import { ACTIONS, useRemoteControl } from "../remote/RemoteControl";
 
 /**
  * PUBLIC_INTERFACE
@@ -62,6 +63,15 @@ export default function Settings() {
     onSelect: () => {
       regSelectRef.current?.focus?.();
     },
+  });
+
+  // Remote: prevent page scroll on arrows; provider handles Back/Exit/Info, focus manager handles Enter
+  useRemoteControl((action, e) => {
+    if ([ACTIONS.UP, ACTIONS.DOWN, ACTIONS.LEFT, ACTIONS.RIGHT].includes(action)) {
+      e?.preventDefault?.();
+      return false;
+    }
+    return false;
   });
 
   return (
