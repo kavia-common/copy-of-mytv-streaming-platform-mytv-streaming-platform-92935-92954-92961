@@ -22,6 +22,13 @@ import { AppSettingsProvider } from './context/SettingsContext';
  * App
  * Adds auth flows: /login, /forgot-pin, /signup and preserves existing routes.
  * RemoteControlProvider enables Samsung TV remote keys globally with normalized mapping.
+ *
+ * Remote Keys integration notes:
+ * - RemoteControlProvider is added once at App level to ensure a single keydown listener.
+ * - Pages use useRemoteControl((action, e) => { ...; return true if handled; }).
+ * - The provider will preventDefault/stopPropagation for handled keys and for arrow keys.
+ * - Back behavior is centralized; pages can intercept "__internal_back_intercept" to close overlays.
+ * - Debug overlay toggled by Info key or enabling REMOTE_KEYS_DEBUG in REACT_APP_FEATURE_FLAGS.
  */
 function App() {
   return (

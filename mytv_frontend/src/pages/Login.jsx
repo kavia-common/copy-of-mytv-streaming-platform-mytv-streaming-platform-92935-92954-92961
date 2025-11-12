@@ -12,6 +12,12 @@ import { ACTIONS, useRemoteControl } from "../remote/RemoteControl";
  * Login
  * Username + 4-digit PIN primary login. TV remote friendly with on-screen keyboard for username and PIN.
  * Shows error messages for invalid combinations and links to Forgot Pin and Sign Up.
+ *
+ * Remote usage:
+ * - Enter submits the form (if PIN is 4 digits).
+ * - Back is handled by the provider unless the on-screen keyboard intercepts it (we return true to consume).
+ * - Arrows navigation handled by FocusManager; we let provider prevent default scrolling.
+ * - Media keys: no-op.
  */
 export default function Login() {
   const [username, setUsername] = useState("");
@@ -23,12 +29,10 @@ export default function Login() {
   const { setFocus } = useFocusManager();
 
   // Intercept Back when virtual keyboard is focused: if activeField is username/pin, first move focus back to form
-  const interceptBack = useMemo(() => (action, e) => {
+  const interceptBack = useMemo(() => (action) => {
     if (action !== "__internal_back_intercept") return false;
-    // If focus id is on keyboard, move focus back to the current field
     const targetId = activeField === "username" ? "login-username" : "login-pin";
     setFocus(targetId);
-    // Do not claim handled if the target already was not on keyboard; still bring focus back to field as UX nicety
     return true;
   }, [activeField, setFocus]);
 
@@ -43,8 +47,7 @@ export default function Login() {
   }, [navigate]);
 
   function onSubmit(e) {
-    e.preventDefault?.();
-    // enforce pin as 4 digits when using PIN mode
+    e?.preventDefault?.();
     if (pin.length !== 4) {
       setError("PIN must be 4 digits.");
       return;
@@ -103,18 +106,17 @@ export default function Login() {
     return () => clearTimeout(t);
   }, [setFocus]);
 
-  // Also prevent page scroll on arrows; Exit returns to root
-  useRemoteControl((action, e) => {
-    if ([ACTIONS.UP, ACTIONS.DOWN, ACTIONS.LEFT, ACTIONS.RIGHT].includes(action)) {
-      e?.preventDefault?.();
-      return false;
+  // Remote handling: Enter submits; Exit to root; arrows are handled globally
+  useRemoteControl((action) => {
+    if (action === ACTIONS.ENTER) {
+      onSubmit({ preventDefault: () => {} });
+      return true;
     }
     if (action === ACTIONS.EXIT) {
       navigate("/", { replace: true });
-      e?.preventDefault?.();
       return true;
     }
-    return false;
+    return false; // others fall back to provider
   });
 
   // Focus-aware VirtualKeyboard handlers using new onKeyPress API

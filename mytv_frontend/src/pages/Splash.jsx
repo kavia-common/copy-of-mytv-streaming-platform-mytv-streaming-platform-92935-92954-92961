@@ -8,7 +8,11 @@ import { useFocusable, useFocusManager } from "../remote/focus/FocusContext";
  * Splash
  * Minimalist dark splash with animated brand fade-in. No buttons/CTAs are rendered.
  * Auto-redirects to /home shortly after mount, preserving existing navigation flow.
- * Integrates remote keys: arrows initialize focus, Enter goes Home, Back handled by provider, Exit -> root.
+ * Remote handling:
+ *  - Arrows: ensure focus anchor is set and prevent default.
+ *  - Enter: navigate to /home (continue).
+ *  - Back: defer to provider (history/back or route fallback).
+ *  - Exit: go to root.
  */
 export default function Splash() {
   const navigate = useNavigate();
@@ -33,22 +37,19 @@ export default function Splash() {
     switch (action) {
       case ACTIONS.ENTER:
         navigate("/home", { replace: true });
-        e?.preventDefault?.();
-        return true;
+        return true; // provider will preventDefault/stopPropagation
       case ACTIONS.UP:
       case ACTIONS.DOWN:
       case ACTIONS.LEFT:
       case ACTIONS.RIGHT:
         // Ensure our root gets focus so arrows don't scroll the page
         setFocus("splash-root");
-        e?.preventDefault?.();
-        return true;
+        return true; // provider prevents default for arrows
       case ACTIONS.BACK:
         // Let provider decide (it will route to login/home appropriately)
         return false;
       case ACTIONS.EXIT:
         navigate("/", { replace: true });
-        e?.preventDefault?.();
         return true;
       default:
         return false;

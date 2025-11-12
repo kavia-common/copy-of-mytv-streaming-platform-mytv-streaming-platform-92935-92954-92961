@@ -38,8 +38,10 @@ export const ACTIONS = {
 /**
  * Map various KeyboardEvent keys and Samsung keyCodes to actions.
  * Includes DOM key names and Tizen keyCodes.
+ * PUBLIC_INTERFACE
+ * mapEventToAction - export for reuse in tests or advanced consumers if needed.
  */
-function mapEventToAction(e) {
+export function mapEventToAction(e) {
   const key = (e.key || "").toLowerCase();
   const code = e.keyCode || e.which;
 
@@ -118,10 +120,23 @@ const RemoteControlContext = createContext(null);
  * RemoteControlProvider
  * Provides remote control action dispatching and a subscription hook for components.
  * Also renders a small Info overlay toggle when INFO key is hit.
+ *
+ * How to use on any screen:
+ * - Call useRemoteControl((action, e) => { ...; return true if handled; });
+ * - Prevent default on handled keys by returning true; provider will do e.preventDefault() for you.
+ * - For Back key override (e.g., close a modal), intercept "__internal_back_intercept" and return true to consume.
+ * - Media keys are passed through (no-op by default) unless your page handles them.
  */
 export function RemoteControlProvider({ children }) {
   const handlersRef = useRef(new Set()); // set of handler functions (action, event) => boolean | void
-  const [showInfo, setShowInfo] = useState(false);
+  const [showInfo, setShowInfo] = useState(() => {
+    // Optional debug overlay controlled via env feature flag
+    try {
+      return String(process.env.REACT_APP_FEATURE_FLAGS || "").split(",").includes("REMOTE_KEYS_DEBUG");
+    } catch {
+      return false;
+    }
+  });
   const navigate = useNavigate();
   const location = useLocation();
   const { moveFocus, select, back } = useFocusManager();
@@ -144,7 +159,6 @@ export function RemoteControlProvider({ children }) {
         const res = fn(action, event);
         if (res === true) handled = true;
       } catch (e) {
-        // Ignore subscriber errors
         // eslint-disable-next-line no-console
         console.error("Remote handler error:", e);
       }
@@ -156,42 +170,21 @@ export function RemoteControlProvider({ children }) {
   const handleDefault = useCallback((action, e) => {
     let handled = false;
 
-    // 1) Navigation via FocusManager
     if ([ACTIONS.UP, ACTIONS.DOWN, ACTIONS.LEFT, ACTIONS.RIGHT].includes(action)) {
       moveFocus(action);
       handled = true;
-    }
-
-    // 2) Enter selects focused control
-    else if (action === ACTIONS.ENTER) {
+    } else if (action === ACTIONS.ENTER) {
       select();
       handled = true;
-    }
-
-    // 3) Back behavior
-    else if (action === ACTIONS.BACK) {
-      // If on virtual keyboard page/section and keyboard is visible, prefer to close it via a custom handler if present.
-      // The specific screen can intercept BACK via useRemoteControl; if not handled here, do app-level:
+    } else if (action === ACTIONS.BACK) {
       const userHandled = dispatchAction("__internal_back_intercept", e) === true;
-      if (userHandled) {
-        handled = true;
-      } else {
-        // If unauthenticated and not on /login, send to /login
-        if (!isAuthenticated) {
-          if (location.pathname !== "/login") {
-            navigate("/login", { replace: true });
-            handled = true;
-          } else {
-            // Already on login; navigate to splash/home fallback
-            if (window.history.length > 1) {
-              back();
-            } else {
-              navigate("/home", { replace: true });
-            }
-            handled = true;
-          }
+      if (userHandled) return true;
+
+      if (!isAuthenticated) {
+        if (location.pathname !== "/login") {
+          navigate("/login", { replace: true });
+          handled = true;
         } else {
-          // Authenticated: navigate back when possible, otherwise to home
           if (window.history.length > 1) {
             back();
           } else {
@@ -199,23 +192,21 @@ export function RemoteControlProvider({ children }) {
           }
           handled = true;
         }
+      } else {
+        if (window.history.length > 1) {
+          back();
+        } else {
+          navigate("/home", { replace: true });
+        }
+        handled = true;
       }
-    }
-
-    // 4) Exit goes to Splash or Home root
-    else if (action === ACTIONS.EXIT) {
+    } else if (action === ACTIONS.EXIT) {
       navigate("/", { replace: true });
       handled = true;
-    }
-
-    // 5) Info toggles the mapping overlay
-    else if (action === ACTIONS.INFO) {
+    } else if (action === ACTIONS.INFO) {
       setShowInfo((v) => !v);
       handled = true;
-    }
-
-    // Media/color/channel/volume are exposed to subscribers but no-ops by default
-    else if (
+    } else if (
       action === ACTIONS.MEDIA_PLAY ||
       action === ACTIONS.MEDIA_PAUSE ||
       action === ACTIONS.MEDIA_STOP ||
@@ -233,7 +224,6 @@ export function RemoteControlProvider({ children }) {
       action === ACTIONS.VOLUME_DOWN ||
       action === ACTIONS.VOLUME_MUTE
     ) {
-      // Do nothing by default; allow subscribers to handle
       handled = false;
     }
 
@@ -246,13 +236,11 @@ export function RemoteControlProvider({ children }) {
       const action = mapEventToAction(e);
       if (!action) return;
 
-      // Prevent browser scroll/default for navigation and handled keys
       const typing = isTypingTarget(e.target);
       if (!typing && [ACTIONS.UP, ACTIONS.DOWN, ACTIONS.LEFT, ACTIONS.RIGHT].includes(action)) {
         e.preventDefault?.();
       }
 
-      // Dispatch to subscribers first; if they handled, prevent default and stop
       const subHandled = dispatchAction(action, e);
       if (subHandled) {
         e.preventDefault?.();
@@ -260,7 +248,6 @@ export function RemoteControlProvider({ children }) {
         return;
       }
 
-      // Default binding
       const defHandled = handleDefault(action, e);
       if (defHandled) {
         e.preventDefault?.();
@@ -273,7 +260,7 @@ export function RemoteControlProvider({ children }) {
 
   const value = useMemo(() => ({
     registerHandler,
-    dispatchAction, // allow manual dispatch if needed
+    dispatchAction,
   }), [registerHandler, dispatchAction]);
 
   return (
@@ -304,6 +291,7 @@ export function useRemoteControl(callback) {
 
 /**
  * Small overlay that lists key mappings for help (toggle via Info key).
+ * Appears only when REACT_APP_FEATURE_FLAGS includes REMOTE_KEYS_DEBUG or when toggled via Info key.
  */
 function RemoteInfoOverlay({ onClose }) {
   return (
