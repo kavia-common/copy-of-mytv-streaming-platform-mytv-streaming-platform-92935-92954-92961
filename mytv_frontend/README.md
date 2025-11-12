@@ -1,82 +1,75 @@
-# Lightweight React Template for KAVIA
+# MyTV Frontend
 
-This project provides a minimal React template with a clean, modern UI and minimal dependencies.
+This is the React frontend for the MyTV streaming interface. It uses Create React App with React Router and Tailwind CSS for styling.
 
 ## Features
-
-- **Lightweight**: No heavy UI frameworks - uses only vanilla CSS and React
-- **Modern UI**: Clean, responsive design with KAVIA brand styling
-- **Fast**: Minimal dependencies for quick loading times
-- **Simple**: Easy to understand and modify
+- Splash screen, Home page with rails, and Login page
+- Responsive design with modern, minimal styling
+- Local mock data with future backend integration
 
 ## Getting Started
 
-In the project directory, you can run:
+In the mytv_frontend directory, you can run:
 
-### `npm start`
+### npm start
+Runs the app in development mode.
+- Open http://localhost:3000 to view it in your browser.
+- You can change the port by setting REACT_APP_PORT or PORT, for example:
+  - PORT=3000 npm start
+  - REACT_APP_PORT=3000 npm start
 
-Runs the app in development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
-
-### `npm test`
-
+### npm test
 Launches the test runner in interactive watch mode.
 
-### `npm run build`
+### npm run build
+Builds the app for production to the build folder.
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+## Running from the workspace root
+
+From the workspace root directory:
+- ./dev-start.sh
+
+This script ensures the correct working directory is used:
+- Frontend path: ./mytv_frontend
+- It installs dependencies if needed and starts the app on PORT (defaults to 3000).
+
+## Container usage
+
+Ensure your container uses the correct working paths:
+- workspaceFolder (root): /workspace/copy-of-mytv-streaming-platform-mytv-streaming-platform-92935-92954-92961
+- frontend path: /workspace/copy-of-mytv-streaming-platform-mytv-streaming-platform-92935-92954-92961/mytv_frontend
+- start command: cd mytv_frontend && PORT=${REACT_APP_PORT:-3000} CI=false npm start
+
+If you are using VS Code Dev Containers, the .devcontainer/devcontainer.json is configured to:
+- Set the workspaceFolder correctly
+- Install dependencies and start the app from mytv_frontend
+
+## Environment variables
+
+The app reads the following environment variables (expected to be provided by orchestrator or .env handling):
+- REACT_APP_API_BASE
+- REACT_APP_BACKEND_URL
+- REACT_APP_FRONTEND_URL
+- REACT_APP_WS_URL
+- REACT_APP_NODE_ENV
+- REACT_APP_NEXT_TELEMETRY_DISABLED
+- REACT_APP_ENABLE_SOURCE_MAPS
+- REACT_APP_PORT
+- REACT_APP_TRUST_PROXY
+- REACT_APP_LOG_LEVEL
+- REACT_APP_HEALTHCHECK_PATH
+- REACT_APP_FEATURE_FLAGS
+- REACT_APP_EXPERIMENTS_ENABLED
+
+Note: Do not commit secrets. Use environment variables injected by your orchestration.
 
 ## Customization
 
-### Colors
-
-The main brand colors are defined as CSS variables in `src/App.css`:
-
-```css
-:root {
-  --kavia-orange: #E87A41;
-  --kavia-dark: #1A1A1A;
-  --text-color: #ffffff;
-  --text-secondary: rgba(255, 255, 255, 0.7);
-  --border-color: rgba(255, 255, 255, 0.1);
-}
-```
-
-### Components
-
-This template uses pure HTML/CSS components instead of a UI framework. You can find component styles in `src/App.css`. 
-
-Common components include:
-- Buttons (`.btn`, `.btn-large`)
-- Container (`.container`)
-- Navigation (`.navbar`)
-- Typography (`.title`, `.subtitle`, `.description`)
+Main brand colors can be customized in Tailwind and CSS files (e.g., src/App.css, tailwind.config.js). Tailwind is installed as a dev dependency.
 
 ## Learn More
 
-To learn React, check out the [React documentation](https://reactjs.org/).
-
-### Code Splitting
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
-
-### Analyzing the Bundle Size
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
-
-### Making a Progressive Web App
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
-
-### Advanced Configuration
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
-
-### Deployment
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
-
-### `npm run build` fails to minify
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+- React: https://reactjs.org/
+- Create React App docs: https://create-react-app.dev/
+- React Router: https://reactrouter.com/
+- Tailwind CSS: https://tailwindcss.com/
