@@ -157,10 +157,12 @@ export function useFocusable({ id, neighbors = {}, onSelect, onBack, defaultFocu
 
   const focused = currentId === id;
 
+  // Roving tabindex: keep only focused item tabbable (tabIndex=0), others -1.
   const focusableProps = {
     ref,
-    tabIndex: -1,
+    tabIndex: focused ? 0 : -1,
     "data-focus-id": id || undefined,
+    "data-focused": focused ? "true" : undefined,
     className: focused ? "ring-2 ring-amber-400 ring-offset-0 outline-none" : undefined,
     onFocus: () => {
       if (id) setFocus(id);
