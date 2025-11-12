@@ -13,10 +13,13 @@ In the mytv_frontend directory, you can run:
 
 ### npm start
 Runs the app in development mode.
+- Binds to HOST (defaults to 0.0.0.0) and PORT (defaults to 3000) so containers can expose the dev server.
 - Open http://localhost:3000 to view it in your browser.
 - You can change the port by setting REACT_APP_PORT or PORT, for example:
   - PORT=3000 npm start
   - REACT_APP_PORT=3000 npm start
+- To suppress the browser auto-open in headless/CI, set BROWSER=none (the dev-start.sh does this automatically).
+- Readiness/health endpoint is served at REACT_APP_HEALTHCHECK_PATH (default: /health) via src/setupProxy.js.
 
 ### npm test
 Launches the test runner in interactive watch mode.

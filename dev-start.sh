@@ -27,10 +27,11 @@ if [[ ! -d "node_modules" ]]; then
   fi
 fi
 
-# Default host/port
-PORT="${REACT_APP_PORT:-3000}"
-HOST="${HOST:-0.0.0.0}"
-export PORT HOST
+# Default host/port and disable auto-opening browser for CI/containers
+PORT="${REACT_APP_PORT:-${PORT:-3000}}"
+HOST="${REACT_APP_HOST:-${HOST:-0.0.0.0}}"
+export PORT HOST BROWSER=none
 
 echo "Starting mytv_frontend in $(pwd) on ${HOST}:${PORT} ..."
-CI=false npm start
+# Explicitly set env for CRA to ensure proper binding
+HOST="$HOST" PORT="$PORT" BROWSER="none" CI=false npm start
