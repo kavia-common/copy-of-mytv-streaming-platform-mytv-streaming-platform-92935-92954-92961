@@ -44,12 +44,13 @@ export default function TitleDetail() {
 
   const closePlayer = () => setShowPlayer(false);
 
-  // Safe default stream: use Shaka sample DASH content
-  // This avoids any network/API prefetch and deterministically opens Shaka overlay.
+  // Safe default stream: updated to use provided MP4 URL.
+  // Hint type as undefined so PlayerOverlay auto-detects and can fall back to native for MP4.
+  // PlayerOverlay handles MP4 via native path and shows an on-screen error if loading fails.
   const DEFAULT_STREAM = useMemo(
     () => ({
-      url: "https://storage.googleapis.com/shaka-demo-assets/angel-one/dash.mpd",
-      type: "dash",
+      url: "https://5bc9cfc0.api.kavia.app/videos/video.mp4",
+      type: undefined, // allow auto-detect; MP4 will be played natively if Shaka is not required
     }),
     []
   );
