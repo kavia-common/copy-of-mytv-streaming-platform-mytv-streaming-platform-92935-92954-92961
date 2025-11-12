@@ -52,7 +52,8 @@ export default function MovieCard({ movie, focusId, neighbors, onSelect }) {
         }
       }}
       className={`rail-item group relative flex-none cursor-pointer outline-none
-        w-36 h-20 sm:w-36 sm:h-20 md:w-44 md:h-24 lg:w-56 lg:h-32 xl:w-64 xl:h-36
+        w-[44vw] sm:w-[32vw] md:w-[22vw] lg:w-[18vw] xl:w-[16vw] 2xl:w-[14vw]
+        max-w-[18rem] min-w-[9rem]
         overflow-visible
         ${focused ? "ring-2 ring-amber-400" : ""}`}
       style={{ contain: "layout paint size", transformStyle: "preserve-3d" }}
@@ -69,7 +70,7 @@ export default function MovieCard({ movie, focusId, neighbors, onSelect }) {
         <img
           src={movie.backdrop}
           alt={`${movie.title} poster`}
-          className="h-full w-full rounded-md object-cover select-none pointer-events-none"
+          className="absolute inset-0 h-full w-full rounded-md object-cover select-none pointer-events-none"
           loading="lazy"
           draggable="false"
         />

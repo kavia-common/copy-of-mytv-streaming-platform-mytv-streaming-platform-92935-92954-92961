@@ -56,7 +56,7 @@ export default function Splash() {
   });
 
   return (
-    <div className="min-h-screen flex flex-col justify-between relative overflow-hidden bg-[color:var(--ocean-bg)]">
+    <div className="min-h-screen flex flex-col justify-between relative overflow-hidden bg-[color:var(--ocean-bg)]" style={{ minHeight: "100svh" }}>
       {/* Hidden/transparent focus anchor for TV navigation */}
       <button
         {...focusableProps}

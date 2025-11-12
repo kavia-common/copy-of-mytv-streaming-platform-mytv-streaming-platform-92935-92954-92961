@@ -80,9 +80,9 @@ export default function Home() {
       {/* Keep original NavBar (sections, etc.) and add TopNav avatar for auth */}
       <NavBar />
       <TopNav />
-      <main className="flex-1 pt-10 md:pt-10">
+      <main className="flex-1 pt-12 md:pt-14">
         <HeroBanner movie={featured} />
-        <div className="mt-1 space-y-2">
+        <div className="mt-1 space-y-2 max-w-7xl mx-auto w-full">
           {/* Anchored sections for navbar hash links */}
           <div id="tv">
             <Rail

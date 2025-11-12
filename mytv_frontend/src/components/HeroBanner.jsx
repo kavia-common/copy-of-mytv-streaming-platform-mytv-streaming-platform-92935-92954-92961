@@ -65,7 +65,15 @@ export default function HeroBanner({ movie }) {
   const showVideo = !videoError;
 
   return (
-    <section className="relative w-full h-[68vh] min-h-[460px] overflow-hidden">
+    <section
+      className="relative w-full overflow-hidden"
+      style={{
+        /* Clamp height: not too small on short screens, not overly tall on huge screens */
+        height: "clamp(40svh, 68svh, 78svh)",
+        minHeight: "360px",
+        maxHeight: "860px",
+      }}
+    >
       {/* Backdrop: prefer responsive video; graceful fallback to image */}
       {showVideo ? (
         <video
