@@ -2,6 +2,13 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  --ocean-bg: #0b1020;
+  --ocean-surface: #161b2e;
+  --ocean-primary: #2563EB;
+  --ocean-secondary: #F59E0B;
+}
+
 /* Ocean Professional variables and dark-first palette */
 :root {
   --ocean-primary: #2563EB;
