@@ -2,6 +2,11 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import shaka from "shaka-player";
 import { getKeyFromEvent } from "../remote/tizen-keys";
 
+// Temporary diagnostics flag parsing (non-intrusive, removable):
+// If REACT_APP_FEATURE_FLAGS includes "showStreamUrl", a tiny on-screen badge will be shown.
+const FEATURE_FLAGS = (process.env.REACT_APP_FEATURE_FLAGS || "").split(",").map((s) => s.trim().toLowerCase());
+const DIAG_SHOW_STREAM_URL = FEATURE_FLAGS.includes("showstreamurl");
+
 /**
  * PUBLIC_INTERFACE
  * PlayerOverlay
@@ -31,6 +36,34 @@ export default function PlayerOverlay({ src, type, onClose, title = "Now Playing
   const [ready, setReady] = useState(false);
   const [errorText, setErrorText] = useState("");
   const [usingNative, setUsingNative] = useState(false);
+
+  // Diagnostics: capture the exact URL we attempt to play.
+  const [diagUrl, setDiagUrl] = useState("");
+
+  // Copy helper for diagnostics badge
+  const copyToClipboard = useCallback(async (text) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      console.log("[Diag] Copied stream URL to clipboard.");
+    } catch (e) {
+      console.warn("[Diag] Clipboard copy failed:", e);
+    }
+  }, []);
+
+  // Truncated label for on-screen badge
+  const diagLabel = useMemo(() => {
+    if (!diagUrl) return "";
+    try {
+      // Keep original form for exactness; just truncate visually
+      const max = 56;
+      if (diagUrl.length <= max) return diagUrl;
+      const head = diagUrl.slice(0, 28);
+      const tail = diagUrl.slice(-20);
+      return `${head}…${tail}`;
+    } catch {
+      return diagUrl;
+    }
+  }, [diagUrl]);
 
   // Controls visibility state
   const [controlsVisible, setControlsVisible] = useState(true);
@@ -123,7 +156,28 @@ export default function PlayerOverlay({ src, type, onClose, title = "Now Playing
         }
         player.configure(cfg);
 
+        // TEMP DIAGNOSTICS: Log and expose the exact URL being loaded by Shaka.
+        // This is intentionally verbose and easy to remove.
+        console.log("[Shaka] Loading manifest URL:", src);
+        try {
+          // Expose for quick inspection
+          window.__CURRENT_STREAM_URL = src; // eslint-disable-line no-underscore-dangle
+        } catch {
+          /* noop */}
+        setDiagUrl(String(src || ""));
+
         await player.load(src);
+
+        // Confirm current manifest after load (Shaka may resolve redirects)
+        try {
+          const manifestUri = player.getManifestUri?.();
+          if (manifestUri) {
+            console.log("[Shaka] Manifest resolved to:", manifestUri);
+            window.__CURRENT_STREAM_URL = manifestUri; // eslint-disable-line no-underscore-dangle
+            setDiagUrl(String(manifestUri));
+          }
+        } catch {
+          /* noop */}
 
         try {
           await videoEl.play();
@@ -150,6 +204,15 @@ export default function PlayerOverlay({ src, type, onClose, title = "Now Playing
         setUsingNative(true);
         videoEl.controls = false; // still use custom controls
         videoEl.src = src;
+
+        // TEMP DIAGNOSTICS for native path
+        console.log("[Native] Loading media URL:", src);
+        try {
+          window.__CURRENT_STREAM_URL = src; // eslint-disable-line no-underscore-dangle
+        } catch {
+          /* noop */}
+        setDiagUrl(String(src || ""));
+
         await videoEl.load?.();
         try {
           await videoEl.play?.();
@@ -468,6 +531,20 @@ export default function PlayerOverlay({ src, type, onClose, title = "Now Playing
         <div className={`absolute bottom-3 right-4 text-xs text-white/80 bg-white/10 rounded px-2 py-1 ring-1 ring-white/10 transition-opacity ${controlsVisible ? "opacity-100" : "opacity-0"}`}>
           Enter: Play/Pause • Left/Right: -10s/+10s • Back: Exit
         </div>
+      )}
+
+      {/* TEMP DIAGNOSTICS BADGE (hidden unless feature flag is set) */}
+      {DIAG_SHOW_STREAM_URL && diagUrl && (
+        <button
+          type="button"
+          aria-hidden="true"
+          title={diagUrl}
+          onClick={() => copyToClipboard(diagUrl)}
+          className="absolute top-2 right-2 max-w-[60vw] truncate text-[10px] sm:text-xs text-white/90 bg-amber-600/80 hover:bg-amber-600 rounded px-2 py-1 ring-1 ring-white/20 shadow"
+          style={{ zIndex: 101 }}
+        >
+          URL: {diagLabel}
+        </button>
       )}
 
       {/* Ready indicator subtle fade-in border (just for polish) */}
