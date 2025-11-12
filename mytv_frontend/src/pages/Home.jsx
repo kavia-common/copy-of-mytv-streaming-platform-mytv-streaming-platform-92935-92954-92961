@@ -73,7 +73,7 @@ export default function Home() {
       <NavBar />
       <TopNav />
       <main className="pt-14">
-        <HeroBanner movie={featured} />
+        <HeroBanner movie={featured} bannerImage={featured?.backdrop || "/assets/banner-default.jpg"} />
         <div className="mt-clamp space-y-2 max-w-7xl mx-auto w-full">
           <div id="tv">
             <Rail

@@ -56,6 +56,8 @@ body {
   overflow: hidden;
   padding-top: 0;
   padding-bottom: 0;
+  /* ensure stacking contexts for overlays and nav */
+  z-index: 0;
 }
 
 /* Maintain 16:9 aspect ratio helper for hero sections */
