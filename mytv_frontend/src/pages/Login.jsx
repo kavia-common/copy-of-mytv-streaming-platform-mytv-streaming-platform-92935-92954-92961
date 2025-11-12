@@ -15,7 +15,7 @@ import VirtualKeyboard from "../components/VirtualKeyboard";
 export default function Login() {
   const [username, setUsername] = useState("");
   const [pin, setPin] = useState("");
-  const [mode, setMode] = useState("pin"); // kept to preserve password toggle UI, but we'll default to pin
+  const [mode] = useState("pin");
   const [error, setError] = useState("");
   const [activeField, setActiveField] = useState("username"); // 'username' | 'pin'
   const navigate = useNavigate();
@@ -32,7 +32,7 @@ export default function Login() {
   function onSubmit(e) {
     e.preventDefault?.();
     // enforce pin as 4 digits when using PIN mode
-    if (activeField === "pin" && pin.length !== 4) {
+    if (pin.length !== 4) {
       setError("PIN must be 4 digits.");
       return;
     }
@@ -90,33 +90,53 @@ export default function Login() {
     return () => clearTimeout(t);
   }, [setFocus]);
 
-  // Keyboard handlers
-  const handleUsernameKey = (k) => {
-    if (typeof k === "string") {
-      setUsername((prev) => (prev + k).slice(0, 64));
+  // Focus-aware VirtualKeyboard handlers using new onKeyPress API
+  const handleUsernameKey = (valOrMeta) => {
+    const isMeta = typeof valOrMeta === "object" && valOrMeta && valOrMeta.action;
+    if (!isMeta) {
+      const v = String(valOrMeta || "");
+      setUsername((prev) => (prev + v).slice(0, 64));
+      setError(""); // clear any stale error
       return;
     }
-    const action = k?.action;
+    const action = valOrMeta.action;
     if (action === "backspace") setUsername((prev) => prev.slice(0, -1));
     else if (action === "clear") setUsername("");
     else if (action === "space") setUsername((prev) => (prev + " ").slice(0, 64));
     else if (action === "done") {
-      // move to PIN
       setActiveField("pin");
       setFocus("login-pin");
       pinRef.current?.focus?.();
     }
   };
-  const handlePinKey = (k) => {
-    if (typeof k === "string") {
+
+  const handlePinKey = (valOrMeta) => {
+    const isMeta = typeof valOrMeta === "object" && valOrMeta && valOrMeta.action;
+    if (!isMeta) {
+      const k = String(valOrMeta || "");
       if (!/^\d$/.test(k)) return;
-      setPin((prev) => (prev + k).slice(0, 4));
+      // Enforce max length 4 and show an error if overflow attempted
+      setPin((prev) => {
+        if (prev.length >= 4) {
+          if (!error) setError("PIN must be 4 digits.");
+          return prev;
+        }
+        setError("");
+        return (prev + k).slice(0, 4);
+        });
       return;
     }
-    const action = k?.action;
-    if (action === "backspace") setPin((prev) => prev.slice(0, -1));
-    else if (action === "clear") setPin("");
-    else if (action === "done") {
+    const action = valOrMeta.action;
+    if (action === "backspace") {
+      setPin((prev) => {
+        const next = prev.slice(0, -1);
+        if (next.length <= 4) setError(""); // clear length error
+        return next;
+      });
+    } else if (action === "clear") {
+      setPin("");
+      setError("");
+    } else if (action === "done") {
       onSubmit({ preventDefault: () => {} });
     }
   };
@@ -165,6 +185,7 @@ export default function Login() {
                 onChange={(e) => {
                   const v = e.target.value.replace(/\D/g, "").slice(0, 4);
                   setPin(v);
+                  if (v.length <= 4) setError("");
                 }}
                 onFocus={() => setActiveField("pin")}
                 className={`w-full tracking-widest rounded-md border ${activeField === "pin" ? "border-blue-500" : "border-white/10"} bg-black/50 px-3 py-2 text-gray-100 placeholder-gray-400 focus:border-blue-500 focus:outline-none`}
@@ -200,13 +221,14 @@ export default function Login() {
             </div>
           </form>
 
-          {/* Virtual keyboard area: shows alpha for username active, numeric for pin active */}
+          {/* Virtual keyboard area: shows alpha for username active, numeric for pin active.
+              When navigating onto the keyboard, we keep the same active target field until user explicitly changes it. */}
           <div className="mt-6">
             {activeField === "username" ? (
               <VirtualKeyboard
                 idBase="vk-username"
                 mode="alphanumeric"
-                onKey={handleUsernameKey}
+                onKeyPress={handleUsernameKey}
                 onDone={() => {
                   setActiveField("pin");
                   setFocus("login-pin");
@@ -218,7 +240,7 @@ export default function Login() {
               <VirtualKeyboard
                 idBase="vk-pin"
                 mode="numeric"
-                onKey={handlePinKey}
+                onKeyPress={handlePinKey}
                 onDone={() => onSubmit({ preventDefault: () => {} })}
                 defaultFocused={false}
               />

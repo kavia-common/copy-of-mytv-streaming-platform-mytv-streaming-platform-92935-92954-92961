@@ -5,10 +5,15 @@ import { useFocusable, useFocusManager } from "../remote/focus/FocusContext";
  * PUBLIC_INTERFACE
  * VirtualKeyboard
  * TV-friendly on-screen keyboard with D-pad focusable keys.
+ * PUBLIC API:
+ * - onKeyPress(value, meta): called for every key press. value is a string for normal keys.
+ *   meta is an optional object with { action: 'backspace'|'clear'|'space'|'done' }.
+ * - onDone(): convenience callback when "Done" is pressed.
+ *
  * Props:
  * - idBase: base id for focusable keys (string)
  * - mode: 'alphanumeric' | 'numeric'
- * - onKey: (value: string | { action: 'backspace'|'clear'|'space'|'done' }) => void
+ * - onKeyPress: function(valueOrMeta, meta?)  // replacement for previous onKey
  * - onDone: () => void
  * - rows: optional custom rows (array of arrays of key strings); when provided, overrides default rows
  * - defaultFocused: boolean, focus the keyboard container by default
@@ -22,7 +27,7 @@ import { useFocusable, useFocusManager } from "../remote/focus/FocusContext";
 export default function VirtualKeyboard({
   idBase = "vk",
   mode = "alphanumeric",
-  onKey,
+  onKeyPress,
   onDone,
   rows,
   defaultFocused = false,
@@ -70,16 +75,16 @@ export default function VirtualKeyboard({
   function emitKey(label) {
     const lower = (label || "").toLowerCase();
     if (label === "⌫") {
-      onKey?.({ action: "backspace" });
+      onKeyPress?.({ action: "backspace" }, { action: "backspace" });
     } else if (lower === "clear") {
-      onKey?.({ action: "clear" });
+      onKeyPress?.({ action: "clear" }, { action: "clear" });
     } else if (lower === "space") {
-      onKey?.({ action: "space" });
+      onKeyPress?.(" ", { action: "space" });
     } else if (lower === "done") {
-      onKey?.({ action: "done" });
+      onKeyPress?.({ action: "done" }, { action: "done" });
       onDone?.();
     } else {
-      onKey?.(label);
+      onKeyPress?.(label);
     }
   }
 

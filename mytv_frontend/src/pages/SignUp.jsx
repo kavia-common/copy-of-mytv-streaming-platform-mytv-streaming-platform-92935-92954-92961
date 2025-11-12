@@ -104,13 +104,15 @@ export default function SignUp() {
     setTimeout(() => navigate("/home", { replace: true }), 600);
   }
 
-  // Virtual keyboard handlers
-  const handleUsernameKey = (k) => {
-    if (typeof k === "string") {
-      setUsername((prev) => (prev + k).slice(0, 64));
+  // Virtual keyboard handlers using new onKeyPress API
+  const handleUsernameKey = (valOrMeta) => {
+    const isMeta = typeof valOrMeta === "object" && valOrMeta && valOrMeta.action;
+    if (!isMeta) {
+      const ch = String(valOrMeta || "");
+      setUsername((prev) => (prev + ch).slice(0, 64));
       return;
     }
-    const action = k?.action;
+    const action = valOrMeta.action;
     if (action === "backspace") setUsername((prev) => prev.slice(0, -1));
     else if (action === "clear") setUsername("");
     else if (action === "space") setUsername((prev) => (prev + " ").slice(0, 64));
@@ -120,31 +122,65 @@ export default function SignUp() {
       pRef.current?.focus?.();
     }
   };
-  const handlePinKey = (k) => {
-    if (typeof k === "string") {
+
+  const handlePinKey = (valOrMeta) => {
+    const isMeta = typeof valOrMeta === "object" && valOrMeta && valOrMeta.action;
+    if (!isMeta) {
+      const k = String(valOrMeta || "");
       if (!/^\d$/.test(k)) return;
-      setPin((prev) => (prev + k).slice(0, 4));
+      setPin((prev) => {
+        if (prev.length >= 4) {
+          if (!error) setError("PIN must be exactly 4 digits.");
+          return prev;
+        }
+        setError("");
+        return (prev + k).slice(0, 4);
+      });
       return;
     }
-    const action = k?.action;
-    if (action === "backspace") setPin((prev) => prev.slice(0, -1));
-    else if (action === "clear") setPin("");
-    else if (action === "done") {
+    const action = valOrMeta.action;
+    if (action === "backspace") {
+      setPin((prev) => {
+        const next = prev.slice(0, -1);
+        if (next.length <= 4) setError("");
+        return next;
+      });
+    } else if (action === "clear") {
+      setPin("");
+      setError("");
+    } else if (action === "done") {
       setActiveField("confirm");
       setFocus("signup-confirm");
       cRef.current?.focus?.();
     }
   };
-  const handleConfirmKey = (k) => {
-    if (typeof k === "string") {
+
+  const handleConfirmKey = (valOrMeta) => {
+    const isMeta = typeof valOrMeta === "object" && valOrMeta && valOrMeta.action;
+    if (!isMeta) {
+      const k = String(valOrMeta || "");
       if (!/^\d$/.test(k)) return;
-      setConfirmPin((prev) => (prev + k).slice(0, 4));
+      setConfirmPin((prev) => {
+        if (prev.length >= 4) {
+          if (!error) setError("PIN must be exactly 4 digits.");
+          return prev;
+        }
+        setError("");
+        return (prev + k).slice(0, 4);
+      });
       return;
     }
-    const action = k?.action;
-    if (action === "backspace") setConfirmPin((prev) => prev.slice(0, -1));
-    else if (action === "clear") setConfirmPin("");
-    else if (action === "done") {
+    const action = valOrMeta.action;
+    if (action === "backspace") {
+      setConfirmPin((prev) => {
+        const next = prev.slice(0, -1);
+        if (next.length <= 4) setError("");
+        return next;
+      });
+    } else if (action === "clear") {
+      setConfirmPin("");
+      setError("");
+    } else if (action === "done") {
       setActiveField("phone");
       setFocus("signup-phone");
       phRef.current?.focus?.();
@@ -245,13 +281,13 @@ export default function SignUp() {
             </div>
           </form>
 
-          {/* Virtual keyboards */}
+          {/* Virtual keyboards: keep target input sticky while navigating the keyboard rows */}
           <div className="mt-6">
             {activeField === "username" && (
               <VirtualKeyboard
                 idBase="vk-username"
                 mode="alphanumeric"
-                onKey={handleUsernameKey}
+                onKeyPress={handleUsernameKey}
                 onDone={() => {
                   setActiveField("pin");
                   setFocus("signup-pin");
@@ -263,7 +299,7 @@ export default function SignUp() {
               <VirtualKeyboard
                 idBase="vk-pin"
                 mode="numeric"
-                onKey={handlePinKey}
+                onKeyPress={handlePinKey}
                 onDone={() => {
                   setActiveField("confirm");
                   setFocus("signup-confirm");
@@ -275,7 +311,7 @@ export default function SignUp() {
               <VirtualKeyboard
                 idBase="vk-confirm"
                 mode="numeric"
-                onKey={handleConfirmKey}
+                onKeyPress={handleConfirmKey}
                 onDone={() => {
                   setActiveField("phone");
                   setFocus("signup-phone");
