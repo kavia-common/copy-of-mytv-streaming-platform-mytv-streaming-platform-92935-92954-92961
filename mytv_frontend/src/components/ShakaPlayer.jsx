@@ -19,6 +19,8 @@ export default function ShakaPlayer({ src }) {
   const playerRef = useRef(null);
   const uiRef = useRef(null);
   const [errorMsg, setErrorMsg] = useState('');
+  // Track playing state to help Shaka UI reflect correct icon (defensive sync)
+  const [isPlaying, setIsPlaying] = useState(false);
 
   // Visibility state for overlay controls (YouTube-like)
   const [controlsVisible, setControlsVisible] = useState(false);
@@ -120,18 +122,30 @@ export default function ShakaPlayer({ src }) {
             try {
               const existing = controls.getConfig ? controls.getConfig() : {};
               controls.configure({
-                controlPanelElements: (existing?.controlPanelElements || []).filter((e) => e !== 'captions'),
-                overflowMenuButtons: (existing?.overflowMenuButtons || []).filter((e) => e !== 'captions'),
+                // Remove captions UI
+                controlPanelElements: (existing?.controlPanelElements || []).filter((el) => el !== 'captions'),
+                overflowMenuButtons: (existing?.overflowMenuButtons || []).filter((el) => el !== 'captions'),
               });
             } catch (e) {
               // eslint-disable-next-line no-console
               console.warn('Failed to configure Shaka UI controls to hide captions:', e);
             }
           }
+          // Add a neutral theme class for CSS specificity (removes default blue)
+          containerRef.current.classList.add('mytv-player');
         }
 
         // Load the content
         await player.load(src);
+
+        // Sync isPlaying state with video element to reflect correct icon toggling
+        const v = video;
+        const onPlay = () => { setIsPlaying(true); showControls(); };
+        const onPause = () => { setIsPlaying(false); showControls(); };
+        const onEnded = () => { setIsPlaying(false); showControls(); };
+        v.addEventListener('play', onPlay);
+        v.addEventListener('pause', onPause);
+        v.addEventListener('ended', onEnded);
 
         // Enforce hidden text tracks after load and on track changes
         const enforceHidden = () => {
@@ -181,6 +195,15 @@ export default function ShakaPlayer({ src }) {
           // eslint-disable-next-line no-console
           console.warn('Error destroying Shaka player:', e);
         }
+      }
+      // Remove video listeners if present
+      const v = videoRef.current;
+      if (v) {
+        try {
+          v.removeEventListener('play', () => {});
+          v.removeEventListener('pause', () => {});
+          v.removeEventListener('ended', () => {});
+        } catch {}
       }
       playerRef.current = null;
       uiRef.current = null;

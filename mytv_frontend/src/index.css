@@ -54,6 +54,93 @@ button[aria-label="Subtitles/Closed Captions"] {
   transition: opacity var(--dur-med, 300ms) var(--ease-standard, ease);
 }
 
+/* Neutralize Shaka default blue theme: use grayscale/white with subtle opacity per Ocean Professional */
+.mytv-player .shaka-controls-container .material-icons,
+.mytv-player .shaka-button-panel .material-icons,
+.mytv-player .shaka-controls-button-panel button,
+.mytv-player .shaka-overflow-button,
+.mytv-player .shaka-fullscreen-button,
+.mytv-player .shaka-rewind-button,
+.mytv-player .shaka-fast-forward-button,
+.mytv-player .shaka-small-play-button,
+.mytv-player .shaka-large-play-button {
+  color: rgba(255, 255, 255, 0.9) !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  border: none !important;
+}
+
+/* Hover/focus states: subtle white tint, remove blue rings */
+.mytv-player .shaka-controls-container button:hover,
+.mytv-player .shaka-controls-container button:active {
+  background-color: rgba(255, 255, 255, 0.12) !important;
+}
+.mytv-player .shaka-controls-container button:focus {
+  outline: none !important;
+  box-shadow: 0 0 0 2px rgba(255,255,255,0.2) !important;
+}
+
+/* Seekbar colors: buffered/played in neutral theme */
+.mytv-player .shaka-seek-bar {
+  --seek-bg: rgba(255, 255, 255, 0.18);
+  --seek-buffered: rgba(255, 255, 255, 0.28);
+  --seek-played: rgba(245, 158, 11, 0.9); /* use secondary amber for played */
+}
+.mytv-player .shaka-seek-bar .shaka-seek-bar-container {
+  background-color: var(--seek-bg) !important;
+}
+.mytv-player .shaka-seek-bar .shaka-buffering {
+  background-color: var(--seek-buffered) !important;
+}
+.mytv-player .shaka-seek-bar .shaka-played {
+  background-color: var(--seek-played) !important;
+}
+
+/* Time and label text in neutral light */
+.mytv-player .shaka-current-time,
+.mytv-player .shaka-duration,
+.mytv-player .shaka-volume-bar,
+.mytv-player .shaka-volume {
+  color: rgba(255,255,255,0.85) !important;
+}
+
+/* Settings/menus neutralized */
+.mytv-player .shaka-settings-menu,
+.mytv-player .shaka-settings-submenu {
+  background-color: rgba(17, 17, 17, 0.95) !important;
+  color: rgba(255,255,255,0.92) !important;
+  border: 1px solid rgba(255,255,255,0.08) !important;
+  box-shadow: 0 6px 24px rgba(0,0,0,0.5) !important;
+}
+.mytv-player .shaka-settings-menu button:hover {
+  background-color: rgba(255,255,255,0.10) !important;
+}
+
+/* Big play/pause center control uses neutral round background on hover only */
+.mytv-player .shaka-large-play-button {
+  background-color: rgba(255,255,255,0.10) !important;
+  border-radius: 9999px !important;
+}
+.mytv-player .shaka-large-play-button:hover {
+  background-color: rgba(255,255,255,0.16) !important;
+}
+
+/* Remove blue focus rings from Shaka elements */
+.mytv-player .shaka-controls-container *:focus-visible {
+  outline: none !important;
+  box-shadow: 0 0 0 2px rgba(255,255,255,0.22) !important;
+}
+
+/* Keep captions hidden across any UI remnants (defense-in-depth) */
+.mytv-player .shaka-caption-button,
+.mytv-player .shaka-settings-menu .shaka-caption-button,
+.mytv-player .shaka-settings-menu-button[aria-label="Subtitles/Closed Captions"],
+.mytv-player .shaka-settings-submenu[data-submenu="captions"],
+.mytv-player button[aria-label="Subtitles"],
+.mytv-player button[aria-label="Subtitles/Closed Captions"] {
+  display: none !important;
+}
+
 /* Ocean Professional variables and dark-first palette */
 :root {
   --ocean-primary: #2563EB;
