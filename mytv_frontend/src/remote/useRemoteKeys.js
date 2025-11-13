@@ -105,7 +105,19 @@ export default function useRemoteKeys(callback) {
   cbRef.current = callback;
 
   useEffect(() => {
+    function isTypingTarget(target) {
+      const tag = target?.tagName ? String(target.tagName).toLowerCase() : "";
+      if (tag === "input" || tag === "textarea") return true;
+      const ce = target?.getAttribute?.("contenteditable");
+      return !!ce && ce !== "false";
+    }
+
     function onKeyDown(e) {
+      // If the user is typing in an input, allow native text editing behavior and don't remap keys.
+      if (isTypingTarget(e.target)) {
+        return;
+      }
+
       const action = mapRemoteEventToAction(e);
       if (!action) return;
 

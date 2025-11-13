@@ -237,8 +237,28 @@ export function RemoteControlProvider({ children }) {
       if (!action) return;
 
       const typing = isTypingTarget(e.target);
-      if (!typing && [ACTIONS.UP, ACTIONS.DOWN, ACTIONS.LEFT, ACTIONS.RIGHT].includes(action)) {
-        e.preventDefault?.();
+
+      // When typing inside inputs/textareas/contenteditable, do not hijack typical editing keys:
+      // - Arrow keys should move the caret
+      // - Enter should submit or insert newline based on form semantics
+      // - Backspace/Escape should not be remapped to BACK
+      if (typing) {
+        if (
+          action === ACTIONS.UP ||
+          action === ACTIONS.DOWN ||
+          action === ACTIONS.LEFT ||
+          action === ACTIONS.RIGHT ||
+          action === ACTIONS.ENTER ||
+          action === ACTIONS.BACK
+        ) {
+          // Let the browser/input handle these; do not propagate to remote handlers.
+          return;
+        }
+      } else {
+        // Not typing: prevent default page scroll for arrow navigation so remote navigation feels native
+        if ([ACTIONS.UP, ACTIONS.DOWN, ACTIONS.LEFT, ACTIONS.RIGHT].includes(action)) {
+          e.preventDefault?.();
+        }
       }
 
       const subHandled = dispatchAction(action, e);
