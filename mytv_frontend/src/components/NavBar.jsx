@@ -59,7 +59,7 @@ export default function NavBar() {
         <div className="flex items-center gap-6">
           <Link to="/home" className="text-2xl font-extrabold tracking-tight">
             <span className="text-white">My</span>
-            <span className="text-ocean-secondary">TV</span>
+            <span className="text-amber-500">TV</span>
           </Link>
           <ul className="hidden md:flex items-center gap-5 text-sm text-gray-200">
             {sections.map((s) => {

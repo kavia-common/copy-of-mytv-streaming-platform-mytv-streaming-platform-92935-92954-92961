@@ -64,7 +64,7 @@ export default function TopNav() {
       <div className="mx-auto max-w-7xl px-4 sm:px-5 md:px-6 lg:px-8 py-3 flex items-center justify-between">
         <Link to="/home" className="text-2xl font-extrabold tracking-tight">
           <span className="text-white">My</span>
-          <span className="text-ocean-secondary">TV</span>
+          <span className="text-amber-500">TV</span>
         </Link>
         <div className="flex items-center gap-3">
           {!isLoggedIn && location.pathname !== "/login" && (

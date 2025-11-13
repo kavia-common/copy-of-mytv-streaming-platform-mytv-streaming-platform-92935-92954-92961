@@ -150,6 +150,10 @@ button[aria-label="Subtitles/Closed Captions"] {
   --ocean-surface: #121212;  /* dark surfaces */
   --ocean-text: #e5e7eb;     /* gray-200 */
 
+  /* Light surface vars used by auth/card screens */
+  --ocean-light-surface: #ffffff;
+  --ocean-light-text: #111827;
+
   /* Motion design tokens */
   --ease-smooth: cubic-bezier(0.22, 1, 0.36, 1);
   --ease-emphasized: cubic-bezier(0.2, 0.8, 0.2, 1);
