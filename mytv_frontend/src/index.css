@@ -19,6 +19,41 @@ button[aria-label="Subtitles/Closed Captions"] {
   display: none !important;
 }
 
+/* YouTube-like controls auto-hide:
+   - By default, Shaka UI fades out.
+   - When our React state toggles visibility, we add an overlay gradient and rely on opacity transition.
+*/
+.shaka-controls-container,
+.shaka-bottom-controls,
+.shaka-controls-button-panel,
+.shaka-settings-menu,
+.shaka-controls-button-panel > * {
+  transition: opacity var(--dur-med, 300ms) var(--ease-standard, ease), visibility var(--dur-med, 300ms) var(--ease-standard, ease);
+}
+
+/* Make controls hidden by default inside our player container */
+.mytv-player .shaka-controls-container {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+/* Reveal when our wrapper has data-controls-visible="true" */
+.mytv-player[data-controls-visible="true"] .shaka-controls-container {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+}
+
+/* Ensure big play button and other overlays honor fade */
+.mytv-player .shaka-play-button,
+.mytv-player .shaka-overflow-button,
+.mytv-player .shaka-fullscreen-button,
+.mytv-player .shaka-rewind-button,
+.mytv-player .shaka-fast-forward-button {
+  transition: opacity var(--dur-med, 300ms) var(--ease-standard, ease);
+}
+
 /* Ocean Professional variables and dark-first palette */
 :root {
   --ocean-primary: #2563EB;

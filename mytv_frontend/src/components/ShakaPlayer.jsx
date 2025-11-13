@@ -1,10 +1,14 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
 
 /**
  * PUBLIC_INTERFACE
  * ShakaPlayer
  * This component wraps Shaka Player to play a given video URL.
- * Captions/subtitles are explicitly disabled and hidden at both player and UI levels.
+ * Enhancements:
+ *  - Persistent subtle watermark at bottom-right.
+ *  - Controls hidden by default; shown on hover or user activity and auto-hide after inactivity.
+ *  - Smooth fade transitions for controls visibility.
+ *  - Captions/subtitles are explicitly disabled and hidden at both player and UI levels.
  *
  * Props:
  *  - src: string - the video URL to play
@@ -15,6 +19,24 @@ export default function ShakaPlayer({ src }) {
   const playerRef = useRef(null);
   const uiRef = useRef(null);
   const [errorMsg, setErrorMsg] = useState('');
+
+  // Visibility state for overlay controls (YouTube-like)
+  const [controlsVisible, setControlsVisible] = useState(false);
+  const hideTimerRef = useRef(null);
+
+  const showControls = useCallback((timeoutMs = 2500) => {
+    setControlsVisible(true);
+    if (hideTimerRef.current) {
+      clearTimeout(hideTimerRef.current);
+    }
+    hideTimerRef.current = setTimeout(() => {
+      setControlsVisible(false);
+    }, timeoutMs);
+  }, []);
+
+  const onUserActivity = useCallback(() => {
+    showControls();
+  }, [showControls]);
 
   // Attach global shaka error listeners
   useEffect(() => {
@@ -136,6 +158,10 @@ export default function ShakaPlayer({ src }) {
         player.addEventListener('texttrackvisibility', enforceHidden);
         player.addEventListener('textlanguagechanged', enforceHidden);
 
+        // Start hidden; reveal briefly and then auto-hide
+        setControlsVisible(false);
+        showControls();
+
       } catch (err) {
         // eslint-disable-next-line no-console
         console.error('Init error:', err);
@@ -158,24 +184,49 @@ export default function ShakaPlayer({ src }) {
       }
       playerRef.current = null;
       uiRef.current = null;
+      if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
     };
-  }, [src]);
+  }, [src, showControls]);
 
   return (
     <div className="w-full flex flex-col items-center gap-2">
       <div
         ref={containerRef}
-        className="relative w-full max-w-5xl bg-black rounded overflow-hidden"
+        className="mytv-player relative w-full max-w-5xl bg-black rounded overflow-hidden group"
         style={{ aspectRatio: '16 / 9' }}
+        onMouseMove={onUserActivity}
+        onMouseEnter={onUserActivity}
+        onClick={onUserActivity}
+        onKeyDown={onUserActivity}
+        onTouchStart={onUserActivity}
+        data-controls-visible={controlsVisible ? 'true' : 'false'}
       >
         <video
           ref={videoRef}
           className="w-full h-full"
           autoPlay
-          controls
+          // hide native controls; Shaka UI overlay still available but we fade it by CSS wrapper behavior
+          controls={false}
           playsInline
           poster=""
         />
+        {/* Watermark - persistent, subtle, pointer-events none */}
+        <div
+          className="pointer-events-none absolute bottom-2 right-3 text-white/70 text-[11px] md:text-xs font-semibold tracking-wide select-none"
+          style={{ textShadow: '0 1px 2px rgba(0,0,0,0.7)' }}
+          aria-hidden="true"
+        >
+          MyTV
+        </div>
+
+        {/* Fade helper overlay to show/hide controls area like YouTube (affects Shaka UI if present) */}
+        <div
+          className={`absolute inset-x-0 bottom-0 transition-opacity duration-300 ease-linear ${controlsVisible ? 'opacity-100' : 'opacity-0'} will-change-[opacity]`}
+          aria-hidden={!controlsVisible}
+        >
+          {/* optional gradient to improve contrast over content */}
+          <div className="pointer-events-none h-20 w-full bg-gradient-to-t from-black/60 to-transparent" />
+        </div>
       </div>
       {errorMsg ? (
         <div className="flex items-center gap-3">
