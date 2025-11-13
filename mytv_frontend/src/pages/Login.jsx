@@ -16,7 +16,7 @@ import { ACTIONS, useRemoteControl } from "../remote/RemoteControl";
 export default function Login() {
   const [username, setUsername] = useState("");
   const [pin, setPin] = useState("");
-  const [mode] = useState("pin");
+  // const [mode] = useState("pin"); // mode reserved for future; not used currently
   const [error, setError] = useState("");
   const [activeField, setActiveField] = useState("username"); // 'username' | 'pin'
   const navigate = useNavigate();

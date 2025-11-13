@@ -38,42 +38,42 @@ export default function Footer() {
           <nav aria-label="Footer links" className="w-full lg:w-auto">
             <ul className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-x-4 gap-y-1 lg:flex lg:flex-wrap lg:items-center lg:gap-x-4 lg:gap-y-0">
               <li>
-                <a href="#" className={linkBase}>
+                <a href="/audio" className={linkBase}>
                   Audio & Subtitles
                 </a>
               </li>
               <li>
-                <a href="#" className={linkBase}>
+                <a href="/media" className={linkBase}>
                   Media Center
                 </a>
               </li>
               <li>
-                <a href="#" className={linkBase}>
+                <a href="/privacy" className={linkBase}>
                   Privacy
                 </a>
               </li>
               <li>
-                <a href="#" className={linkBase}>
+                <a href="/contact" className={linkBase}>
                   Contact Us
                 </a>
               </li>
               <li>
-                <a href="#" className={linkBase}>
+                <a href="/audio-description" className={linkBase}>
                   Audio Description
                 </a>
               </li>
               <li>
-                <a href="#" className={linkBase}>
+                <a href="/investors" className={linkBase}>
                   Investor Relations
                 </a>
               </li>
               <li>
-                <a href="#" className={linkBase}>
+                <a href="/legal" className={linkBase}>
                   Legal Notices
                 </a>
               </li>
               <li>
-                <a href="#" className={linkBase}>
+                <a href="/help" className={linkBase}>
                   Help Center
                 </a>
               </li>
@@ -86,19 +86,19 @@ export default function Footer() {
               © {new Date().getFullYear()} MyTV. All rights reserved.
             </p>
             <div className="order-1 sm:order-2 flex items-center gap-3 whitespace-nowrap">
-              <a href="#" className="hover:text-white">
+              <a href="/terms" className="hover:text-white">
                 Terms
               </a>
               <span className="text-white/20" aria-hidden="true">
                 •
               </span>
-              <a href="#" className="hover:text-white">
+              <a href="/privacy" className="hover:text-white">
                 Privacy
               </a>
               <span className="text-white/20" aria-hidden="true">
                 •
               </span>
-              <a href="#" className="hover:text-white">
+              <a href="/cookies" className="hover:text-white">
                 Cookies
               </a>
             </div>

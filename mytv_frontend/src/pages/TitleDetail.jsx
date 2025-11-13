@@ -3,7 +3,7 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import NavBar from "../components/NavBar";
 import TopNav from "../components/TopNav";
 import Footer from "../components/Footer";
-import Button from "../components/Button";
+
 import PlayerOverlay from "../components/PlayerOverlay";
 import { movies } from "../data/movies";
 import { useFocusable } from "../remote/focus/FocusContext";

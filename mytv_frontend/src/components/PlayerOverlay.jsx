@@ -72,9 +72,10 @@ export default function PlayerOverlay({ src, type, onClose, title = "Now Playing
   // Initialize Shaka or native playback
   useEffect(() => {
     let mounted = true;
+    // Stabilize the current video element for this effect's lifetime
+    const videoEl = videoRef.current;
 
     async function initShaka() {
-      const videoEl = videoRef.current;
       if (!videoEl) return;
 
       // Prepare video element and attributes
@@ -145,14 +146,14 @@ export default function PlayerOverlay({ src, type, onClose, title = "Now Playing
       }
     }
 
-    async function playNatively(videoEl) {
+    async function playNatively(el) {
       try {
         setUsingNative(true);
-        videoEl.controls = false; // still use custom controls
-        videoEl.src = src;
-        await videoEl.load?.();
+        el.controls = false; // still use custom controls
+        el.src = src;
+        await el.load?.();
         try {
-          await videoEl.play?.();
+          await el.play?.();
         } catch (e) {
           console.warn("Native autoplay blocked; waiting for user action.", e?.message || e);
         }
@@ -173,12 +174,12 @@ export default function PlayerOverlay({ src, type, onClose, title = "Now Playing
         playerRef.current?.destroy?.();
       } catch {}
       playerRef.current = null;
-      const v = videoRef.current;
-      if (v) {
+      // Use the stabilized local ref
+      if (videoEl) {
         try {
-          v.pause?.();
-          v.removeAttribute?.("src");
-          v.load?.();
+          videoEl.pause?.();
+          videoEl.removeAttribute?.("src");
+          videoEl.load?.();
         } catch {}
       }
       if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
@@ -222,11 +223,13 @@ export default function PlayerOverlay({ src, type, onClose, title = "Now Playing
     onProgress();
 
     return () => {
-      v.removeEventListener("timeupdate", onTime);
-      v.removeEventListener("durationchange", onDuration);
-      v.removeEventListener("progress", onProgress);
-      v.removeEventListener("seeking", onTime);
-      v.removeEventListener("seeked", onTime);
+      const node = v;
+      if (!node) return;
+      node.removeEventListener("timeupdate", onTime);
+      node.removeEventListener("durationchange", onDuration);
+      node.removeEventListener("progress", onProgress);
+      node.removeEventListener("seeking", onTime);
+      node.removeEventListener("seeked", onTime);
     };
   }, [ready]);
 

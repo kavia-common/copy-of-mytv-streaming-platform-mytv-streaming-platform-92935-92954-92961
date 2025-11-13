@@ -1,0 +1,36 @@
+version: "3.9"
+services:
+  mytv_frontend:
+    container_name: mytv_frontend
+    build:
+      context: ./mytv_frontend
+      dockerfile: Dockerfile
+    working_dir: /usr/src/app
+    ports:
+      - "${REACT_APP_PORT-3000}:3000"
+    environment:
+      # Map environment variables from .env; fallbacks are provided
+      REACT_APP_API_BASE: ${REACT_APP_API_BASE:-http://localhost:8000}
+      REACT_APP_BACKEND_URL: ${REACT_APP_BACKEND_URL:-http://localhost:8000}
+      REACT_APP_FRONTEND_URL: ${REACT_APP_FRONTEND_URL:-http://localhost:3000}
+      REACT_APP_WS_URL: ${REACT_APP_WS_URL:-ws://localhost:8000/ws}
+      REACT_APP_NODE_ENV: ${REACT_APP_NODE_ENV:-development}
+      REACT_APP_NEXT_TELEMETRY_DISABLED: ${REACT_APP_NEXT_TELEMETRY_DISABLED:-1}
+      REACT_APP_ENABLE_SOURCE_MAPS: ${REACT_APP_ENABLE_SOURCE_MAPS:-true}
+      REACT_APP_PORT: ${REACT_APP_PORT:-3000}
+      REACT_APP_TRUST_PROXY: ${REACT_APP_TRUST_PROXY:-true}
+      REACT_APP_LOG_LEVEL: ${REACT_APP_LOG_LEVEL:-info}
+      REACT_APP_HEALTHCHECK_PATH: ${REACT_APP_HEALTHCHECK_PATH:-/healthz}
+      REACT_APP_FEATURE_FLAGS: ${REACT_APP_FEATURE_FLAGS:-{}}
+      REACT_APP_EXPERIMENTS_ENABLED: ${REACT_APP_EXPERIMENTS_ENABLED:-false}
+      REACT_APP_HOST: ${REACT_APP_HOST:-0.0.0.0}
+      REACT_APP_BROWSER: ${REACT_APP_BROWSER:-none}
+      REACT_APP_DANGEROUSLY_DISABLE_HOST_CHECK: ${REACT_APP_DANGEROUSLY_DISABLE_HOST_CHECK:-true}
+      HOST: ${REACT_APP_HOST:-0.0.0.0}
+      PORT: ${REACT_APP_PORT:-3000}
+      BROWSER: ${REACT_APP_BROWSER:-none}
+    volumes:
+      # Mount the current frontend folder into the container
+      - ./mytv_frontend:/usr/src/app
+    command: ["npm", "start"]
+    restart: unless-stopped

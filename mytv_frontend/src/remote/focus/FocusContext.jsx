@@ -153,6 +153,10 @@ export function useFocusable({ id, neighbors = {}, onSelect, onBack, defaultFocu
       };
     }
     return unregister;
+    // We intentionally do not depend on the full 'neighbors' object identity to avoid an infinite loop
+    // and excessive re-registrations when parent components recreate objects on each render.
+    // Tracking the directional keys individually is sufficient for correctness in this registry.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id, neighbors?.left, neighbors?.right, neighbors?.up, neighbors?.down, onSelect, onBack, defaultFocused, register, setFocus]);
 
   const focused = currentId === id;

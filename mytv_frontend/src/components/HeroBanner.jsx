@@ -1,4 +1,4 @@
-import React, { useMemo, useRef, useState } from "react";
+import React, { useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Button from "./Button";
 
@@ -26,11 +26,7 @@ export default function HeroBanner({ movie }) {
   // pick poster from movie backdrop if available (handle undefined movie)
   const poster = movie?.backdrop || undefined;
 
-  // Basic client hint to prefer mobile source
-  const prefersMobile = useMemo(() => {
-    if (typeof window === "undefined") return false;
-    return window.innerWidth <= 640; // sm breakpoint
-  }, []);
+  // Note: Prefer <source media="(max-width: 640px)"> for responsive video without needing JS hints
 
   const onVideoError = () => {
     setVideoError(true);
