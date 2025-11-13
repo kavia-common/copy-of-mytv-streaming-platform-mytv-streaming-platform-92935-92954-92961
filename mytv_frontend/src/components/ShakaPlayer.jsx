@@ -3,29 +3,18 @@ import React, { useEffect, useRef, useState } from 'react';
 /**
  * PUBLIC_INTERFACE
  * ShakaPlayer
- * This component wraps Shaka Player to play a given video URL and loads an external WebVTT captions track.
- * - Captions are added via player.addTextTrack and default to OFF.
- * - UI controls include Shaka UI controls (if available in the environment) and a simple toggle button.
- * - Includes robust error handling for player and UI events.
+ * This component wraps Shaka Player to play a given video URL.
+ * Captions/subtitles are explicitly disabled and hidden at both player and UI levels.
  *
  * Props:
  *  - src: string - the video URL to play
- *  - vttSrc: string - the WebVTT subtitle URL (relative to public), e.g., "/subtitles/video-en.vtt"
- *  - language: string - language code for the track, default "en"
- *  - label: string - label shown to users, default "English"
  */
-export default function ShakaPlayer({
-  src,
-  vttSrc,
-  language = 'en',
-  label = 'English',
-}) {
+export default function ShakaPlayer({ src }) {
   const videoRef = useRef(null);
   const containerRef = useRef(null);
   const playerRef = useRef(null);
   const uiRef = useRef(null);
   const [errorMsg, setErrorMsg] = useState('');
-  const [captionsEnabled, setCaptionsEnabled] = useState(false);
 
   // Attach global shaka error listeners
   useEffect(() => {
@@ -35,13 +24,6 @@ export default function ShakaPlayer({
       console.error('Shaka Player is not available on window. Did you include it in package.json?');
       return;
     }
-
-    const onErrorEvent = (event) => {
-      // eslint-disable-next-line no-console
-      console.error('Shaka error event:', event);
-      const err = event?.detail || event;
-      setErrorMsg(`Playback error: ${err?.code || 'Unknown error'}`);
-    };
 
     document.addEventListener('shaka-ui-loaded', () => {
       // eslint-disable-next-line no-console
@@ -55,22 +37,17 @@ export default function ShakaPlayer({
     return () => {
       document.removeEventListener('shaka-ui-loaded', () => {});
       document.removeEventListener('shaka-ui-load-failed', () => {});
-      // No global off for shaka errors here because we bind to player/UI directly below
     };
   }, []);
 
   useEffect(() => {
-    let destroyed = false;
-
     async function init() {
       try {
         const shaka = window.shaka;
         if (!shaka) return;
 
-        // Install polyfills
         shaka.polyfill.installAll();
 
-        // Ensure browser is supported
         if (!shaka.Player.isBrowserSupported()) {
           setErrorMsg('Browser not supported by Shaka Player.');
           return;
@@ -82,7 +59,7 @@ export default function ShakaPlayer({
           return;
         }
 
-        // Initialize player
+        // Initialize player and configure to disable text tracks
         const player = new shaka.Player(video);
         playerRef.current = player;
 
@@ -92,7 +69,22 @@ export default function ShakaPlayer({
           setErrorMsg(`Player error: ${e?.detail?.code || 'Unknown'}`);
         });
 
-        // Try enabling Shaka UI if available
+        // Configure to disable/hide text at multiple levels
+        player.configure({
+          preferredTextLanguage: '',
+          textVisibility: false,
+          streaming: {
+            text: { // for older versions, ignored by newer ones
+              enabled: false,
+            },
+          },
+          manifest: {
+            dash: { ignoreTextStreamFailures: true },
+            hls: { ignoreTextStreamFailures: true },
+          },
+        });
+
+        // Setup Shaka UI overlay, excluding captions controls if UI is available
         if (shaka.ui && containerRef.current) {
           const ui = new shaka.ui.Overlay(player, containerRef.current, video);
           uiRef.current = ui;
@@ -103,31 +95,46 @@ export default function ShakaPlayer({
               console.error('Shaka UI controls error:', e?.detail || e);
               setErrorMsg(`UI error: ${e?.detail?.code || 'Unknown'}`);
             });
+            try {
+              const existing = controls.getConfig ? controls.getConfig() : {};
+              controls.configure({
+                controlPanelElements: (existing?.controlPanelElements || []).filter((e) => e !== 'captions'),
+                overflowMenuButtons: (existing?.overflowMenuButtons || []).filter((e) => e !== 'captions'),
+              });
+            } catch (e) {
+              // eslint-disable-next-line no-console
+              console.warn('Failed to configure Shaka UI controls to hide captions:', e);
+            }
           }
         }
 
         // Load the content
         await player.load(src);
 
-        // Add the external WebVTT track; captions default OFF, so do not setTextTrackVisibility(true)
-        // Note: Streaming protocols and CORS must allow fetching this vtt from public folder.
-        await player.addTextTrack(
-          vttSrc,         // uri
-          'en',           // language
-          'subtitles',    // kind
-          'text/vtt',     // mimeType
-          '',             // codec (empty for vtt)
-          label           // label
-        );
+        // Enforce hidden text tracks after load and on track changes
+        const enforceHidden = () => {
+          try {
+            player.setTextTrackVisibility(false);
+            // Optionally deselect language
+            if (typeof player.setTextLanguage === 'function') {
+              player.setTextLanguage('');
+            }
+            // Attempt to clear any selected text track if API is available
+            const getTracks = player.getTextTracks ? player.getTextTracks() : [];
+            if (getTracks && getTracks.length && typeof player.selectTextTrack === 'function') {
+              // Selecting null is not supported; ensure visibility stays false instead
+              player.setTextTrackVisibility(false);
+            }
+          } catch (err) {
+            // eslint-disable-next-line no-console
+            console.warn('Failed to enforce hidden captions:', err);
+          }
+        };
 
-        // Ensure text visibility starts OFF (default)
-        player.setTextTrackVisibility(false);
-        setCaptionsEnabled(false);
-
-        // Confirm text tracks
-        const textTracks = player.getTextTracks();
-        // eslint-disable-next-line no-console
-        console.log('Available text tracks:', textTracks);
+        enforceHidden();
+        player.addEventListener('trackschanged', enforceHidden);
+        player.addEventListener('texttrackvisibility', enforceHidden);
+        player.addEventListener('textlanguagechanged', enforceHidden);
 
       } catch (err) {
         // eslint-disable-next-line no-console
@@ -140,7 +147,6 @@ export default function ShakaPlayer({
 
     // Cleanup
     return () => {
-      destroyed = true;
       const player = playerRef.current;
       if (player) {
         try {
@@ -153,15 +159,7 @@ export default function ShakaPlayer({
       playerRef.current = null;
       uiRef.current = null;
     };
-  }, [src, vttSrc, label]);
-
-  const toggleCaptions = () => {
-    const player = playerRef.current;
-    if (!player) return;
-    const next = !captionsEnabled;
-    player.setTextTrackVisibility(next);
-    setCaptionsEnabled(next);
-  };
+  }, [src]);
 
   return (
     <div className="w-full flex flex-col items-center gap-2">
@@ -179,26 +177,13 @@ export default function ShakaPlayer({
           poster=""
         />
       </div>
-      <div className="flex items-center gap-3">
-        <button
-          type="button"
-          onClick={toggleCaptions}
-          className="px-3 py-1 rounded bg-gray-200 hover:bg-gray-300 text-gray-800 text-sm"
-          aria-pressed={captionsEnabled}
-          aria-label="Toggle captions"
-        >
-          {captionsEnabled ? 'Turn Captions Off' : 'Turn Captions On'}
-        </button>
-        {errorMsg ? (
+      {errorMsg ? (
+        <div className="flex items-center gap-3">
           <span className="text-red-600 text-sm" role="alert">
             {errorMsg}
           </span>
-        ) : (
-          <span className="text-gray-500 text-xs">
-            Captions default to off. Use this toggle or the player captions menu.
-          </span>
-        )}
-      </div>
+        </div>
+      ) : null}
     </div>
   );
 }

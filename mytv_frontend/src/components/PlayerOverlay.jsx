@@ -7,13 +7,7 @@ import { getKeyFromEvent } from "../remote/tizen-keys";
 const FEATURE_FLAGS = (process.env.REACT_APP_FEATURE_FLAGS || "").split(",").map((s) => s.trim().toLowerCase());
 const DIAG_SHOW_STREAM_URL = FEATURE_FLAGS.includes("showstreamurl");
 
-/**
- * Subtitle configuration:
- * - External WebVTT support for EN/ES via env vars.
- */
-const SUBTITLE_KIND = "subtitle";
-const EXT_VTT_EN = process.env.REACT_APP_SUBTITLE_VTT_URL_EN || "";
-const EXT_VTT_ES = process.env.REACT_APP_SUBTITLE_VTT_URL_ES || "";
+// Captions are fully disabled; constants kept for clarity but unused
 const SUB_LANG_SESSION_KEY = "mytv.player.subtitles.language";
 
 /**
@@ -46,42 +40,8 @@ export default function PlayerOverlay({ src, type, onClose, title = "Now Playing
   const [errorText, setErrorText] = useState("");
   const [usingNative, setUsingNative] = useState(false);
 
-  // Subtitles state: default ON, persist within session
-  const SUB_SESSION_KEY = "mytv.player.subtitles.enabled";
-  const [subsEnabled, setSubsEnabled] = useState(() => {
-    try {
-      const raw = sessionStorage.getItem(SUB_SESSION_KEY);
-      return raw === null ? true : raw === "true";
-    } catch {
-      return true;
-    }
-  });
-  const [subtitleError, setSubtitleError] = useState("");
-  // Track languages available and the selected language
-  const [availableTextLangs, setAvailableTextLangs] = useState([]); // e.g., ["en","es"]
-  const [selectedLang, setSelectedLang] = useState(() => {
-    try {
-      return sessionStorage.getItem(SUB_LANG_SESSION_KEY) || "";
-    } catch {
-      return "";
-    }
-  });
+  // Captions fully disabled; no subtitle state
 
-  const persistSelectedLang = useCallback((lang) => {
-    try {
-      sessionStorage.setItem(SUB_LANG_SESSION_KEY, lang || "");
-    } catch {
-      // ignore
-    }
-  }, []);
-
-  const persistSubsEnabled = useCallback((val) => {
-    try {
-      sessionStorage.setItem(SUB_SESSION_KEY, String(val));
-    } catch {
-      // ignore
-    }
-  }, []);
 
   // Diagnostics: capture the exact URL we attempt to play.
   const [diagUrl, setDiagUrl] = useState("");
@@ -148,56 +108,7 @@ export default function PlayerOverlay({ src, type, onClose, title = "Now Playing
     };
   }, []);
 
-  // Select text language according to preferred order and enabled state
-  const applyTextLanguage = useCallback((player, langPref, enabled) => {
-    if (!player) return;
-    try {
-      // Visibility first
-      if (typeof player.setTextTrackVisibility === "function") {
-        player.setTextTrackVisibility(!!enabled);
-      }
-      if (!enabled) return;
-
-      // Prefer explicit track selection when available
-      const tracks = player.getTextTracks ? player.getTextTracks() : [];
-      let target = null;
-      if (langPref) {
-        target = tracks.find((t) => (t.language || "").toLowerCase().startsWith(langPref.toLowerCase()));
-      }
-      // If no exact match, try English, then Spanish, then first
-      if (!target) target = tracks.find((t) => (t.language || "").toLowerCase().startsWith("en"));
-      if (!target) target = tracks.find((t) => (t.language || "").toLowerCase().startsWith("es"));
-      if (!target && tracks.length > 0) target = tracks[0];
-
-      if (target && typeof player.selectTextTrack === "function") {
-        player.selectTextTrack(target);
-      } else if (langPref && typeof player.setTextLanguage === "function") {
-        player.setTextLanguage(langPref);
-      }
-    } catch (e) {
-      console.warn("[Shaka] applyTextLanguage failed:", e);
-    }
-  }, []);
-
-  // Refresh available languages from player
-  const refreshAvailableLanguages = useCallback((player) => {
-    try {
-      const langs = [];
-      const tracks = player?.getTextTracks ? player.getTextTracks() : [];
-      tracks.forEach((t) => {
-        const code = (t.language || "").toLowerCase();
-        if (code && !langs.includes(code)) langs.push(code);
-      });
-      // Normalize common variants
-      const normalized = langs.map((l) => (l.startsWith("en") ? "en" : l.startsWith("es") ? "es" : l));
-      const unique = Array.from(new Set(normalized));
-      setAvailableTextLangs(unique);
-      return unique;
-    } catch {
-      setAvailableTextLangs([]);
-      return [];
-    }
-  }, []);
+  // No subtitle language application; captions are disabled
 
   // Initialize Shaka or native playback
   useEffect(() => {
@@ -241,85 +152,65 @@ export default function PlayerOverlay({ src, type, onClose, title = "Now Playing
         const cfg = {
           streaming: {
             bufferingGoal: 10,
+            text: { enabled: false }, // attempt to disable text in streaming layer for older APIs
+          },
+          preferredTextLanguage: "",
+          textVisibility: false,
+          manifest: {
+            hls: { ignoreTextStreamFailures: true },
+            dash: { ignoreTextStreamFailures: true },
           },
         };
         if (urlInfo.isHls) {
           cfg.manifest = cfg.manifest || {};
-          cfg.manifest.hls = cfg.manifest.hls || {};
-          cfg.manifest.hls.ignoreTextStreamFailures = true;
+          cfg.manifest.hls = { ...(cfg.manifest.hls || {}), ignoreTextStreamFailures: true };
         } else if (urlInfo.isDash) {
           cfg.manifest = cfg.manifest || {};
-          cfg.manifest.dash = cfg.manifest.dash || {};
+          cfg.manifest.dash = { ...(cfg.manifest.dash || {}), ignoreTextStreamFailures: true };
         }
         player.configure(cfg);
 
-        // TEMP DIAGNOSTICS: Log and expose the exact URL being loaded by Shaka.
-        // This is intentionally verbose and easy to remove.
+        // Hide captions in UI overlay if present
+        try {
+          const controls = player.getControls?.();
+          if (controls && controls.getConfig && controls.configure) {
+            const existing = controls.getConfig();
+            controls.configure({
+              controlPanelElements: (existing?.controlPanelElements || []).filter((e) => e !== "captions"),
+              overflowMenuButtons: (existing?.overflowMenuButtons || []).filter((e) => e !== "captions"),
+            });
+          }
+        } catch (e) {
+          console.warn("[Shaka] Failed to strip captions from UI controls:", e);
+        }
+
+        // TEMP DIAGNOSTICS
         console.log("[Shaka] Loading manifest URL:", src);
         try {
-          // Expose for quick inspection
           window.__CURRENT_STREAM_URL = src; // eslint-disable-line no-underscore-dangle
-        } catch {
-          /* noop */}
+        } catch { /* noop */ }
         setDiagUrl(String(src || ""));
 
         await player.load(src);
 
-        // After load: set up subtitles EN/ES and selector
-        try {
-          // Register optional external tracks first so they appear in the list
-          if (EXT_VTT_EN) {
-            try {
-              await player.addTextTrack(EXT_VTT_EN, "en", "text/vtt", SUBTITLE_KIND, "EN");
-              console.log("[Shaka] External EN subtitle added:", EXT_VTT_EN);
-            } catch (e) {
-              console.warn("[Shaka] Failed to add EN VTT:", e);
-              setSubtitleError("Failed to load EN subtitles.");
+        // Enforce hidden captions after load and on related events
+        const enforceHidden = () => {
+          try {
+            player.setTextTrackVisibility(false);
+            player.setTextLanguage?.("");
+            const tracks = player.getTextTracks ? player.getTextTracks() : [];
+            if (tracks && tracks.length && typeof player.selectTextTrack === "function") {
+              // Do not select any text track and keep visibility false.
+              player.setTextTrackVisibility(false);
             }
+          } catch (e) {
+            console.warn("[Shaka] Enforce hidden captions failed:", e);
           }
-          if (EXT_VTT_ES) {
-            try {
-              await player.addTextTrack(EXT_VTT_ES, "es", "text/vtt", SUBTITLE_KIND, "ES");
-              console.log("[Shaka] External ES subtitle added:", EXT_VTT_ES);
-            } catch (e) {
-              console.warn("[Shaka] Failed to add ES VTT:", e);
-              setSubtitleError((prev) => prev || "Failed to load ES subtitles.");
-            }
-          }
-
-          // Pick default language: last selected, else EN, else first available
-          const langs = refreshAvailableLanguages(player);
-          let desired = selectedLang;
-          if (!desired || !langs.includes(desired)) {
-            if (langs.includes("en")) desired = "en";
-            else if (langs.includes("es")) desired = "es";
-            else desired = langs[0] || "";
-          }
-          setSelectedLang(desired);
-          if (desired) persistSelectedLang(desired);
-
-          // Apply visibility and selection
-          applyTextLanguage(player, desired, subsEnabled);
-
-          // Listen for track changes to refresh availability dynamically
-          const onTracksChanged = () => {
-            const newLangs = refreshAvailableLanguages(player);
-            if (newLangs.length && !newLangs.includes(selectedLang)) {
-              // current selected language disappeared, fallback
-              const fallback = newLangs.includes("en") ? "en" : newLangs[0];
-              setSelectedLang(fallback);
-              persistSelectedLang(fallback);
-              applyTextLanguage(player, fallback, subsEnabled);
-            }
-          };
-          player.addEventListener("texttrackchanged", onTracksChanged);
-          player.addEventListener("trackschanged", onTracksChanged);
-
-          // Cleanup listeners when effect re-runs/unmounts via return in outer effect
-        } catch (subtitleSetupErr) {
-          console.warn("[Shaka] Subtitle setup encountered an error:", subtitleSetupErr);
-          setSubtitleError("Subtitle setup error.");
-        }
+        };
+        enforceHidden();
+        player.addEventListener("trackschanged", enforceHidden);
+        player.addEventListener("texttrackvisibility", enforceHidden);
+        player.addEventListener("textlanguagechanged", enforceHidden);
 
         // Confirm current manifest after load (Shaka may resolve redirects)
         try {
@@ -399,7 +290,7 @@ export default function PlayerOverlay({ src, type, onClose, title = "Now Playing
       }
       if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
     };
-  }, [src, urlInfo.isDash, urlInfo.isHls, type, showControls, subsEnabled]);
+  }, [src, urlInfo.isDash, urlInfo.isHls, type, showControls]);
 
   // Listen to timeupdate, durationchange, progress for progress bar
   useEffect(() => {
@@ -471,37 +362,7 @@ export default function PlayerOverlay({ src, type, onClose, title = "Now Playing
     }
   }
 
-  // PUBLIC_INTERFACE
-  function toggleSubtitles() {
-    /** Toggle subtitle visibility on/off and persist during session. */
-    const next = !subsEnabled;
-    setSubsEnabled(next);
-    persistSubsEnabled(next);
 
-    const player = playerRef.current;
-    if (player && typeof player.setTextTrackVisibility === "function") {
-      try {
-        applyTextLanguage(player, selectedLang, next);
-      } catch (e) {
-        console.warn("[Shaka] Failed to update subtitle visibility:", e);
-        setSubtitleError("Unable to toggle subtitles.");
-      }
-    } else {
-      // Native fallback path: expose tracks on HTML5 video if any exist
-      const v = videoRef.current;
-      try {
-        if (v && v.textTracks && v.textTracks.length > 0) {
-          for (let i = 0; i < v.textTracks.length; i++) {
-            const track = v.textTracks[i];
-            track.mode = next ? "showing" : "disabled";
-          }
-        }
-      } catch (err) {
-        console.warn("[Native] Subtitle toggle failed:", err);
-        setSubtitleError("Unable to toggle subtitles.");
-      }
-    }
-  }
 
   // Remote key handling within overlay: scoped and resilient even when <video> has focus.
   const overlayKeyHandler = useCallback(
@@ -592,21 +453,7 @@ export default function PlayerOverlay({ src, type, onClose, title = "Now Playing
     };
   }, [overlayKeyHandler]);
 
-  // Keep available language list in sync when enabled toggles or player becomes ready
-  useEffect(() => {
-    const player = playerRef.current;
-    if (!player) return;
-    const langs = refreshAvailableLanguages(player);
-    // If selected disappears, fallback
-    if (langs.length && selectedLang && !langs.includes(selectedLang)) {
-      const fallback = langs.includes("en") ? "en" : langs[0];
-      setSelectedLang(fallback);
-      persistSelectedLang(fallback);
-      applyTextLanguage(player, fallback, subsEnabled);
-    } else if (langs.length && subsEnabled) {
-      applyTextLanguage(player, selectedLang, true);
-    }
-  }, [ready, subsEnabled, refreshAvailableLanguages, applyTextLanguage, selectedLang, persistSelectedLang]);
+  // Subtitles are disabled; no language sync needed
 
   // Also capture Back/Escape when video has focus by listening at window in capture phase,
   // but only act if the event target is inside the overlay.
@@ -692,19 +539,7 @@ export default function PlayerOverlay({ src, type, onClose, title = "Now Playing
           >
             ⏩
           </button>
-          <button
-            type="button"
-            aria-label={subsEnabled ? "Turn subtitles off" : "Turn subtitles on"}
-            title={subsEnabled ? "Subtitles: On" : "Subtitles: Off"}
-            className={`h-12 w-12 md:h-14 md:w-14 rounded-full focus:outline-none focus:ring-2 text-white text-base md:text-lg ${
-              subsEnabled
-                ? "bg-emerald-600 hover:bg-emerald-500 focus:ring-emerald-300"
-                : "bg-white/10 hover:bg-white/20 focus:ring-white/30"
-            }`}
-            onClick={() => { toggleSubtitles(); showControls(); }}
-          >
-            CC
-          </button>
+
         </div>
       </div>
 
@@ -714,11 +549,7 @@ export default function PlayerOverlay({ src, type, onClose, title = "Now Playing
           {errorText}
         </div>
       )}
-      {subtitleError && (
-        <div className="absolute bottom-16 left-1/2 -translate-x-1/2 rounded-md bg-red-600/80 text-white px-3 py-1.5 text-sm ring-1 ring-white/10">
-          {subtitleError}
-        </div>
-      )}
+
 
       {/* Bottom progress bar with buffered segments and played progress */}
       <div
@@ -748,7 +579,7 @@ export default function PlayerOverlay({ src, type, onClose, title = "Now Playing
       {/* Minimal help hint */}
       {!errorText && (
         <div className={`absolute bottom-3 right-4 text-xs text-white/80 bg-white/10 rounded px-2 py-1 ring-1 ring-white/10 transition-opacity ${controlsVisible ? "opacity-100" : "opacity-0"}`}>
-          Enter: Play/Pause • Left/Right: -10s/+10s • Back: Exit • CC: Subtitles • Lang: EN/ES
+          Enter: Play/Pause • Left/Right: -10s/+10s • Back: Exit
         </div>
       )}
 

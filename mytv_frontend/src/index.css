@@ -9,6 +9,16 @@
   --ocean-secondary: #F59E0B;
 }
 
+/* Safeguard: hide any captions/CC UI from Shaka Player if it renders */
+.shaka-caption-button,
+.shaka-settings-menu .shaka-caption-button,
+.shaka-settings-menu-button[aria-label="Subtitles/Closed Captions"],
+.shaka-settings-submenu[data-submenu="captions"],
+button[aria-label="Subtitles"],
+button[aria-label="Subtitles/Closed Captions"] {
+  display: none !important;
+}
+
 /* Ocean Professional variables and dark-first palette */
 :root {
   --ocean-primary: #2563EB;
