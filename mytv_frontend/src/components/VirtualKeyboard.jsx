@@ -156,8 +156,8 @@ function FocusableKey({ id, label, neighbors, onActivate }) {
 
   const base =
     "min-w-[44px] min-h-[44px] px-3 py-2 rounded-md text-sm md:text-base font-semibold " +
-    "bg-white/10 text-gray-100 hover:bg-white/20 focus:outline-none focus:ring-2 focus:ring-amber-400 " +
-    "data-[focused=true]:ring-2 data-[focused=true]:ring-amber-400";
+    "bg-white/10 text-gray-100 hover:bg-white/20 focus:outline-none " +
+    "data-[focused=true]:ring-1 data-[focused=true]:ring-amber-400";
   const specialClass = isSpecial
     ? (label || "").toLowerCase() === "done"
       ? "bg-ocean-primary hover:bg-blue-600 focus:ring-blue-400"
@@ -170,6 +170,7 @@ function FocusableKey({ id, label, neighbors, onActivate }) {
       type="button"
       className={`${base} ${specialClass}`}
       aria-label={`Key ${label}`}
+      onClick={onActivate}
     >
       {label === "Space" ? "␣ Space" : label}
     </button>

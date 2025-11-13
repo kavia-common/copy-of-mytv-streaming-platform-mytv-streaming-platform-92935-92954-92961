@@ -77,15 +77,17 @@ body {
   scroll-snap-align: start;
 }
 
-/* Improve focus treatment for TV / keyboard navigation */
+/* Improve focus treatment for TV / keyboard navigation
+   Make the highlight subtler: thinner ring, lower opacity, remove heavy outer shadow,
+   and avoid any implicit zoom to prevent layout jank on TVs. */
 [data-focused="true"] {
   outline: none;
-  /* Mirror hover emphasis: ring + slight scale without animation jitter */
-  box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.95), 0 20px 40px -20px rgba(0,0,0,0.6);
-  border-radius: 0.5rem; /* slightly more rounded for media tiles */
+  box-shadow: 0 0 0 1px rgba(245, 158, 11, 0.55); /* thinner + softer */
+  border-radius: 0.5rem;
+  transform: none; /* ensure no scale inflation */
 }
 [data-focused="true"]:focus-visible {
-  box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.95), 0 24px 48px -24px rgba(0,0,0,0.65);
+  box-shadow: 0 0 0 1.5px rgba(245, 158, 11, 0.6);
 }
 /* Ensure visible focus for inputs/buttons when focused via remote script or keyboard */
 input:focus-visible, button:focus-visible, a:focus-visible, select:focus-visible {
