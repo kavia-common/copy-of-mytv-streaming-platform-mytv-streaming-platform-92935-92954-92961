@@ -488,7 +488,7 @@ export default function PlayerOverlay({ src, type, onClose, title = "Now Playing
           <button
             type="button"
             aria-label="Back 5 seconds"
-            className="h-12 w-12 md:h-14 md:w-14 rounded-full bg-white/10 hover:bg-white/20 focus:outline-none focus:ring-2 focus:ring-white/30 text-white text-xl md:text-2xl flex items-center justify-center"
+            className="h-12 w-12 md:h-14 md:w-14 rounded-full bg-white/10 hover:bg-white/20 focus:outline-none focus:ring-0 focus-visible:outline-none focus-visible:ring-0 focus-visible:[box-shadow:0_0_0_3px_rgba(255,255,255,0.25)] text-white text-xl md:text-2xl flex items-center justify-center"
             onClick={() => { seekBy(-5); showControls(); }}
           >
             {/* Icon: rotate forward icon to indicate back 5s with small '5' */}
@@ -498,7 +498,7 @@ export default function PlayerOverlay({ src, type, onClose, title = "Now Playing
           <button
             type="button"
             aria-label={isPlaying ? "Pause" : "Play"}
-            className="h-12 w-12 md:h-16 md:w-16 rounded-full bg-white/15 hover:bg-white/25 focus:outline-none focus:ring-2 focus:ring-white/30 text-white text-xl md:text-2xl flex items-center justify-center"
+            className="h-12 w-12 md:h-16 md:w-16 rounded-full bg-white/15 hover:bg-white/25 focus:outline-none focus:ring-0 focus-visible:outline-none focus-visible:ring-0 focus-visible:[box-shadow:0_0_0_3px_rgba(255,255,255,0.28)] text-white text-xl md:text-2xl flex items-center justify-center"
             onClick={() => { togglePlay(); showControls(); }}
           >
             <span aria-hidden="true">{isPlaying ? "⏸" : "▶"}</span>
@@ -506,7 +506,7 @@ export default function PlayerOverlay({ src, type, onClose, title = "Now Playing
           <button
             type="button"
             aria-label="Forward 5 seconds"
-            className="h-12 w-12 md:h-14 md:w-14 rounded-full bg-white/10 hover:bg-white/20 focus:outline-none focus:ring-2 focus:ring-white/30 text-white text-xl md:text-2xl flex items-center justify-center"
+            className="h-12 w-12 md:h-14 md:w-14 rounded-full bg-white/10 hover:bg-white/20 focus:outline-none focus:ring-0 focus-visible:outline-none focus-visible:ring-0 focus-visible:[box-shadow:0_0_0_3px_rgba(255,255,255,0.25)] text-white text-xl md:text-2xl flex items-center justify-center"
             onClick={() => { seekBy(5); showControls(); }}
           >
             <span className="sr-only">Forward 5 seconds</span>
