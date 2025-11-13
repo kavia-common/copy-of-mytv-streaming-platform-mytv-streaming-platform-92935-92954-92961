@@ -7,32 +7,11 @@ import { getKeyFromEvent } from "../remote/tizen-keys";
 const FEATURE_FLAGS = (process.env.REACT_APP_FEATURE_FLAGS || "").split(",").map((s) => s.trim().toLowerCase());
 const DIAG_SHOW_STREAM_URL = FEATURE_FLAGS.includes("showstreamurl");
 
-// Captions are fully disabled; constants kept for clarity but unused
-const SUB_LANG_SESSION_KEY = "mytv.player.subtitles.language";
-
-/**
- * PUBLIC_INTERFACE
- * PlayerOverlay
- * Full-screen overlay that hosts a minimal video element and initializes Shaka Player.
- * - Props:
- *   - src: string (manifest or media URL)
- *   - type: 'dash' | 'hls' | undefined (optional hint from API; used to set Shaka config)
- *   - onClose: function to be called when overlay should close (e.g., Back or close button).
- *   - title: optional title to show in the top-left overlay chrome.
- * - Behavior:
- *   - Attaches Shaka to the <video> element before calling player.load(url).
- *   - Sets manifest config based on type (DASH/HLS) when provided; attempts auto-detect otherwise.
- *   - Handles autoplay policy by attempting videoEl.play() after load; if blocked, waits for user Enter.
- *   - On Shaka failure, gracefully falls back to native <video> playback for simple MP4 or HLS.
- *   - Remote keys inside overlay:
- *     - Enter toggles play/pause.
- *     - Left/Right seek -10s/+10s.
- *     - Back (Escape/Backspace/10009) exits the overlay (calls onClose).
- * - UI:
- *   - Centered controls group: Rewind 10s, Play/Pause, Forward 10s, shown on hover/move/focus and auto-hidden after inactivity.
- *   - Bottom progress bar showing played vs buffered segments; updates on timeupdate/progress.
- */
+// PUBLIC_INTERFACE
 export default function PlayerOverlay({ src, type, onClose, title = "Now Playing" }) {
+  /** Full-screen overlay that hosts a video element and Shaka Player with custom controls.
+   * Ensures the center play/pause icon reflects actual playback state by syncing to media events.
+   */
   const videoRef = useRef(null);
   const playerRef = useRef(null);
 
@@ -40,40 +19,17 @@ export default function PlayerOverlay({ src, type, onClose, title = "Now Playing
   const [errorText, setErrorText] = useState("");
   const [usingNative, setUsingNative] = useState(false);
 
-  // Captions fully disabled; no subtitle state
-
+  // Play state bound to the central control icon
+  const [isPlaying, setIsPlaying] = useState(false);
 
   // Diagnostics: capture the exact URL we attempt to play.
   const [diagUrl, setDiagUrl] = useState("");
 
-  // Copy helper for diagnostics badge
-  const copyToClipboard = useCallback(async (text) => {
-    try {
-      await navigator.clipboard.writeText(text);
-      console.log("[Diag] Copied stream URL to clipboard.");
-    } catch (e) {
-      console.warn("[Diag] Clipboard copy failed:", e);
-    }
-  }, []);
-
-  // Truncated label for on-screen badge
-  const diagLabel = useMemo(() => {
-    if (!diagUrl) return "";
-    try {
-      // Keep original form for exactness; just truncate visually
-      const max = 56;
-      if (diagUrl.length <= max) return diagUrl;
-      const head = diagUrl.slice(0, 28);
-      const tail = diagUrl.slice(-20);
-      return `${head}…${tail}`;
-    } catch {
-      return diagUrl;
-    }
-  }, [diagUrl]);
-
-  // Controls visibility state
+  // Controls visibility state and debounce for race conditions (ads/initial buffering)
   const [controlsVisible, setControlsVisible] = useState(true);
   const hideTimerRef = useRef(null);
+  const rafRef = useRef(0);
+  const playSyncTimerRef = useRef(0);
 
   // Progress state
   const [currentTime, setCurrentTime] = useState(0);
@@ -90,7 +46,6 @@ export default function PlayerOverlay({ src, type, onClose, title = "Now Playing
     return { isDash, isHls, isMp4 };
   }, [src, type]);
 
-  // Show controls and set auto-hide timer
   const showControls = useCallback((delayMs = 2500) => {
     setControlsVisible(true);
     if (hideTimerRef.current) {
@@ -101,14 +56,15 @@ export default function PlayerOverlay({ src, type, onClose, title = "Now Playing
     }, delayMs);
   }, []);
 
-  // Clear timer on unmount
-  useEffect(() => {
-    return () => {
-      if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
-    };
+  // Debounced state sync after events (to avoid timing issues with Shaka internal state flips)
+  const syncPlayState = useCallback(() => {
+    if (rafRef.current) cancelAnimationFrame(rafRef.current);
+    rafRef.current = requestAnimationFrame(() => {
+      const v = videoRef.current;
+      if (!v) return;
+      setIsPlaying(!v.paused && !v.ended && v.readyState >= 2);
+    });
   }, []);
-
-  // No subtitle language application; captions are disabled
 
   // Initialize Shaka or native playback
   useEffect(() => {
@@ -118,9 +74,8 @@ export default function PlayerOverlay({ src, type, onClose, title = "Now Playing
       const videoEl = videoRef.current;
       if (!videoEl) return;
 
-      // Prepare video element and attributes
       videoEl.controls = false;
-      videoEl.autoplay = false; // we'll call play() explicitly after load
+      videoEl.autoplay = false;
       videoEl.playsInline = true;
 
       // Destroy prior instance
@@ -152,7 +107,7 @@ export default function PlayerOverlay({ src, type, onClose, title = "Now Playing
         const cfg = {
           streaming: {
             bufferingGoal: 10,
-            text: { enabled: false }, // attempt to disable text in streaming layer for older APIs
+            text: { enabled: false },
           },
           preferredTextLanguage: "",
           textVisibility: false,
@@ -170,7 +125,7 @@ export default function PlayerOverlay({ src, type, onClose, title = "Now Playing
         }
         player.configure(cfg);
 
-        // Hide captions in UI overlay if present
+        // Attempt to hide captions in any Shaka UI overlay (if present)
         try {
           const controls = player.getControls?.();
           if (controls && controls.getConfig && controls.configure) {
@@ -184,7 +139,6 @@ export default function PlayerOverlay({ src, type, onClose, title = "Now Playing
           console.warn("[Shaka] Failed to strip captions from UI controls:", e);
         }
 
-        // TEMP DIAGNOSTICS
         console.log("[Shaka] Loading manifest URL:", src);
         try {
           window.__CURRENT_STREAM_URL = src; // eslint-disable-line no-underscore-dangle
@@ -200,7 +154,6 @@ export default function PlayerOverlay({ src, type, onClose, title = "Now Playing
             player.setTextLanguage?.("");
             const tracks = player.getTextTracks ? player.getTextTracks() : [];
             if (tracks && tracks.length && typeof player.selectTextTrack === "function") {
-              // Do not select any text track and keep visibility false.
               player.setTextTrackVisibility(false);
             }
           } catch (e) {
@@ -212,16 +165,9 @@ export default function PlayerOverlay({ src, type, onClose, title = "Now Playing
         player.addEventListener("texttrackvisibility", enforceHidden);
         player.addEventListener("textlanguagechanged", enforceHidden);
 
-        // Confirm current manifest after load (Shaka may resolve redirects)
         try {
           const manifestUri = player.getManifestUri?.();
-          if (manifestUri) {
-            console.log("[Shaka] Manifest resolved to:", manifestUri);
-            window.__CURRENT_STREAM_URL = manifestUri; // eslint-disable-line no-underscore-dangle
-            setDiagUrl(String(manifestUri));
-          }
-        } catch {
-          /* noop */}
+        } catch { /* noop */ }
 
         try {
           await videoEl.play();
@@ -233,7 +179,9 @@ export default function PlayerOverlay({ src, type, onClose, title = "Now Playing
           setReady(true);
           setErrorText("");
           setUsingNative(false);
-          showControls(); // show initially, then auto-hide
+          showControls();
+          // Sync play state once after ready
+          syncPlayState();
         }
       } catch (e) {
         console.error("Shaka initialization/load failed, attempting native fallback…", e);
@@ -246,15 +194,13 @@ export default function PlayerOverlay({ src, type, onClose, title = "Now Playing
     async function playNatively(videoEl) {
       try {
         setUsingNative(true);
-        videoEl.controls = false; // still use custom controls
+        videoEl.controls = false;
         videoEl.src = src;
 
-        // TEMP DIAGNOSTICS for native path
         console.log("[Native] Loading media URL:", src);
         try {
           window.__CURRENT_STREAM_URL = src; // eslint-disable-line no-underscore-dangle
-        } catch {
-          /* noop */}
+        } catch { /* noop */ }
         setDiagUrl(String(src || ""));
 
         await videoEl.load?.();
@@ -266,6 +212,7 @@ export default function PlayerOverlay({ src, type, onClose, title = "Now Playing
         setReady(true);
         setErrorText("");
         showControls();
+        syncPlayState();
       } catch (e) {
         console.error("Native playback also failed:", e);
         setErrorText("Failed to start playback. Please try again.");
@@ -289,20 +236,63 @@ export default function PlayerOverlay({ src, type, onClose, title = "Now Playing
         } catch {}
       }
       if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
+      if (rafRef.current) cancelAnimationFrame(rafRef.current);
+      if (playSyncTimerRef.current) clearTimeout(playSyncTimerRef.current);
     };
-  }, [src, urlInfo.isDash, urlInfo.isHls, type, showControls]);
+  }, [src, urlInfo.isDash, urlInfo.isHls, type, showControls, syncPlayState]);
+
+  // Attach media state listeners to keep isPlaying synced; include debounced updates
+  useEffect(() => {
+    const v = videoRef.current;
+    if (!v) return undefined;
+
+    const update = () => {
+      // debounce via RAF to avoid state thrash during quick transitions (e.g., ads/waiting/initial)
+      if (rafRef.current) cancelAnimationFrame(rafRef.current);
+      rafRef.current = requestAnimationFrame(() => {
+        setIsPlaying(!v.paused && !v.ended && v.readyState >= 2);
+      });
+    };
+
+    const onPlay = () => { update(); showControls(); };
+    const onPlaying = () => { update(); };
+    const onPause = () => { update(); showControls(); };
+    const onEnded = () => { update(); showControls(); };
+    const onWaiting = () => {
+      // Briefly mark as not playing to show play icon if buffering causes auto-pause visuals
+      if (playSyncTimerRef.current) clearTimeout(playSyncTimerRef.current);
+      setIsPlaying(false);
+      // After a short delay, resync to current paused flag (handles quick rebuffer)
+      playSyncTimerRef.current = setTimeout(update, 150);
+    };
+
+    v.addEventListener("play", onPlay);
+    v.addEventListener("playing", onPlaying);
+    v.addEventListener("pause", onPause);
+    v.addEventListener("ended", onEnded);
+    v.addEventListener("waiting", onWaiting);
+
+    // Initial sync
+    update();
+
+    return () => {
+      v.removeEventListener("play", onPlay);
+      v.removeEventListener("playing", onPlaying);
+      v.removeEventListener("pause", onPause);
+      v.removeEventListener("ended", onEnded);
+      v.removeEventListener("waiting", onWaiting);
+      if (rafRef.current) cancelAnimationFrame(rafRef.current);
+      if (playSyncTimerRef.current) clearTimeout(playSyncTimerRef.current);
+    };
+  }, [ready]);
 
   // Listen to timeupdate, durationchange, progress for progress bar
   useEffect(() => {
     const v = videoRef.current;
     if (!v) return;
 
-    const onTime = () => {
-      setCurrentTime(v.currentTime || 0);
-    };
-    const onDuration = () => {
-      setDuration(Number.isFinite(v.duration) ? v.duration : 0);
-    };
+    const onTime = () => setCurrentTime(v.currentTime || 0);
+    const onDuration = () => setDuration(Number.isFinite(v.duration) ? v.duration : 0);
     const onProgress = () => {
       const ranges = [];
       try {
@@ -323,7 +313,7 @@ export default function PlayerOverlay({ src, type, onClose, title = "Now Playing
     v.addEventListener("progress", onProgress);
     v.addEventListener("seeking", onTime);
     v.addEventListener("seeked", onTime);
-    // Initialize once
+
     onDuration();
     onTime();
     onProgress();
@@ -362,22 +352,18 @@ export default function PlayerOverlay({ src, type, onClose, title = "Now Playing
     }
   }
 
-
-
-  // Remote key handling within overlay: scoped and resilient even when <video> has focus.
+  // Remote key handling within overlay
   const overlayKeyHandler = useCallback(
     (e) => {
       const logical = getKeyFromEvent(e);
       if (!logical) return;
 
-      // Do not hijack typing fields
       const tag = (e.target && e.target.tagName) ? e.target.tagName.toLowerCase() : "";
       const isTypingField = tag === "input" || tag === "textarea";
       if (!isTypingField && ["up", "down", "left", "right"].includes(logical)) {
-        e.preventDefault?.(); // prevent page scroll or default arrow handling
+        e.preventDefault?.();
       }
 
-      // Always reveal controls on interaction
       showControls();
 
       switch (logical) {
@@ -392,8 +378,6 @@ export default function PlayerOverlay({ src, type, onClose, title = "Now Playing
           seekBy(10);
           break;
         case "back":
-          // Samsung Back key (10009), Escape, Backspace should close overlay
-          // Prevent default to avoid browser navigation or Tizen system back bubbling
           e.preventDefault?.();
           e.stopPropagation?.();
           onClose?.();
@@ -405,24 +389,15 @@ export default function PlayerOverlay({ src, type, onClose, title = "Now Playing
     [onClose, seekBy, showControls]
   );
 
-  // Mouse movement/hover shows controls
   const onMouseActivity = useCallback(() => {
     showControls();
   }, [showControls]);
 
-  // Focus the overlay root on mount so it can capture Back/Escape, without disturbing input fields (none here)
-  useEffect(() => {
-    const t = setTimeout(() => overlayRef.current?.focus?.(), 0);
-    return () => clearTimeout(t);
-  }, []);
-
-  // Compute played percentage
   const playedPct = useMemo(() => {
     if (!duration || !Number.isFinite(duration)) return 0;
     return Math.max(0, Math.min(100, (currentTime / duration) * 100));
   }, [currentTime, duration]);
 
-  // Render buffered segments as absolute positioned bars
   const bufferBars = useMemo(() => {
     if (!duration || !Number.isFinite(duration)) return null;
     return bufferedRanges.map((r, idx) => {
@@ -443,7 +418,6 @@ export default function PlayerOverlay({ src, type, onClose, title = "Now Playing
 
   const overlayRef = useRef(null);
 
-  // Attach an overlay-scoped keydown listener
   useEffect(() => {
     const el = overlayRef.current;
     if (!el) return;
@@ -453,15 +427,11 @@ export default function PlayerOverlay({ src, type, onClose, title = "Now Playing
     };
   }, [overlayKeyHandler]);
 
-  // Subtitles are disabled; no language sync needed
-
-  // Also capture Back/Escape when video has focus by listening at window in capture phase,
-  // but only act if the event target is inside the overlay.
   useEffect(() => {
     const onWindowKeyDownCapture = (e) => {
       const overlayEl = overlayRef.current;
       if (!overlayEl) return;
-      if (!overlayEl.contains(e.target)) return; // ignore outside overlay
+      if (!overlayEl.contains(e.target)) return;
       overlayKeyHandler(e);
     };
     window.addEventListener("keydown", onWindowKeyDownCapture, true);
@@ -480,7 +450,7 @@ export default function PlayerOverlay({ src, type, onClose, title = "Now Playing
       onClick={onMouseActivity}
       tabIndex={-1}
     >
-      {/* Top bar: Ocean theme back/close affordance */}
+      {/* Top bar with back control */}
       <div className={`absolute top-0 left-0 right-0 flex items-center justify-between px-4 md:px-6 py-3 bg-black/40 backdrop-blur-sm transition-opacity ${controlsVisible ? "opacity-100" : "opacity-0"}`}>
         <button
           type="button"
@@ -497,7 +467,7 @@ export default function PlayerOverlay({ src, type, onClose, title = "Now Playing
             {usingNative ? "(Native)" : "(Shaka)"}
           </span>
         </div>
-        <div className="opacity-0"> {/* spacer to balance layout */} </div>
+        <div className="opacity-0" />
       </div>
 
       {/* Video container */}
@@ -509,7 +479,7 @@ export default function PlayerOverlay({ src, type, onClose, title = "Now Playing
         />
       </div>
 
-      {/* Center controls group: rewind 10s, play/pause, forward 10s */}
+      {/* Center controls group */}
       <div
         className={`absolute inset-0 flex items-center justify-center transition-opacity ${controlsVisible ? "opacity-100" : "opacity-0"} pointer-events-none`}
         aria-hidden={!controlsVisible}
@@ -525,11 +495,11 @@ export default function PlayerOverlay({ src, type, onClose, title = "Now Playing
           </button>
           <button
             type="button"
-            aria-label="Play or pause"
+            aria-label={isPlaying ? "Pause" : "Play"}
             className="h-12 w-12 md:h-14 md:w-14 rounded-full bg-ocean-primary hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-400 text-white text-xl md:text-2xl"
             onClick={() => { togglePlay(); showControls(); }}
           >
-            ⏯
+            {isPlaying ? "⏸" : "▶"}
           </button>
           <button
             type="button"
@@ -539,7 +509,6 @@ export default function PlayerOverlay({ src, type, onClose, title = "Now Playing
           >
             ⏩
           </button>
-
         </div>
       </div>
 
@@ -550,16 +519,13 @@ export default function PlayerOverlay({ src, type, onClose, title = "Now Playing
         </div>
       )}
 
-
-      {/* Bottom progress bar with buffered segments and played progress */}
+      {/* Bottom progress bar */}
       <div
         className={`absolute left-0 right-0 bottom-0 px-6 py-4 transition-opacity ${controlsVisible ? "opacity-100" : "opacity-0"}`}
         aria-hidden={!controlsVisible}
       >
         <div className="relative h-2 rounded bg-white/10 overflow-hidden">
-          {/* Buffered segments */}
           {bufferBars}
-          {/* Played progress */}
           <div
             className="absolute top-1/2 -translate-y-1/2 h-1.5 bg-ocean-secondary rounded"
             style={{ width: `${playedPct}%` }}
@@ -583,27 +549,14 @@ export default function PlayerOverlay({ src, type, onClose, title = "Now Playing
         </div>
       )}
 
-      {/* TEMP DIAGNOSTICS BADGE (hidden unless feature flag is set) */}
-      {DIAG_SHOW_STREAM_URL && diagUrl && (
-        <button
-          type="button"
-          aria-hidden="true"
-          title={diagUrl}
-          onClick={() => copyToClipboard(diagUrl)}
-          className="absolute top-2 right-2 max-w-[60vw] truncate text-[10px] sm:text-xs text-white/90 bg-amber-600/80 hover:bg-amber-600 rounded px-2 py-1 ring-1 ring-white/20 shadow"
-          style={{ zIndex: 101 }}
-        >
-          URL: {diagLabel}
-        </button>
-      )}
-
-      {/* Ready indicator subtle fade-in border (just for polish) */}
+      {/* Watermark - persistent, subtle, pointer-events none */}
       <div
-        className={`pointer-events-none absolute inset-0 transition-opacity duration-500 ${
-          ready ? "opacity-0" : "opacity-100"
-        }`}
+        className="pointer-events-none absolute bottom-2 right-3 text-white/70 text-[11px] md:text-xs font-semibold tracking-wide select-none"
+        style={{ textShadow: "0 1px 2px rgba(0,0,0,0.7)" }}
         aria-hidden="true"
-      />
+      >
+        MyTV
+      </div>
     </div>
   );
 }
