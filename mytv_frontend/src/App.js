@@ -1,5 +1,5 @@
 import React from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, Link } from 'react-router-dom';
 
 // Pages
 import Splash from './pages/Splash';
@@ -9,6 +9,7 @@ import Settings from './pages/Settings';
 import TitleDetail from './pages/TitleDetail';
 import ForgotPin from './pages/ForgotPin';
 import SignUp from './pages/SignUp';
+import VideoPlayer from './pages/VideoPlayer';
 
 // Remote focus/keys
 import { FocusManagerProvider } from './remote/focus/FocusContext';
@@ -36,6 +37,14 @@ function App() {
       <FocusManagerProvider>
         <AppSettingsProvider>
           <RemoteControlProvider>
+            <div className="absolute top-2 left-2 z-50">
+              <Link
+                to="/video"
+                className="px-2 py-1 bg-blue-600 text-white rounded text-xs hover:bg-blue-700"
+              >
+                Open Video with Captions
+              </Link>
+            </div>
             <Routes>
               <Route path="/" element={<Splash />} />
               <Route path="/home" element={<Home />} />
@@ -44,6 +53,7 @@ function App() {
               <Route path="/signup" element={<SignUp />} />
               <Route path="/settings" element={<Settings />} />
               <Route path="/title/:id" element={<TitleDetail />} />
+              <Route path="/video" element={<VideoPlayer />} />
               {/* Fallback to splash */}
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>

@@ -1,0 +1,16 @@
+WEBVTT
+
+00:00:00.000 --> 00:00:04.000
+Welcome to MyTV. Enjoy your streaming experience.
+
+00:00:04.500 --> 00:00:08.000
+This sample caption demonstrates English subtitles in WebVTT.
+
+00:00:08.500 --> 00:00:12.000
+Use the captions button to toggle subtitles on or off.
+
+00:00:12.500 --> 00:00:16.000
+Captions are off by default and can be enabled anytime.
+
+00:00:16.500 --> 00:00:20.000
+Powered by Shaka Player with external text tracks.
