@@ -2,6 +2,40 @@
 
 This project provides a minimal React template with a clean, modern UI and minimal dependencies.
 
+## Container Runtime Notes (Working Directory and Paths)
+
+- The Dockerfile uses `WORKDIR /usr/src/app`.
+- docker-compose mounts the project directory using:
+  - `volumes: - ./mytv_frontend:/usr/src/app`
+  - `working_dir: /usr/src/app`
+- Important: Do not reference host paths inside the container. For example, paths like `/home/kavia/workspace/code-generation/.../mytv_frontend` should never be used as `WORKDIR` or `command` working paths inside the container.
+- If you encounter a startup error such as "chdir: no such file or directory", verify:
+  1) The compose `build.context` is `./mytv_frontend` from the repository root.
+  2) The compose `working_dir` is `/usr/src/app`.
+  3) The volume mount maps `./mytv_frontend:/usr/src/app`.
+  4) The container command is `["npm", "start"]`.
+
+### Example docker-compose service (already configured in the repo)
+
+```yaml
+services:
+  mytv_frontend:
+    build:
+      context: ./mytv_frontend
+      dockerfile: Dockerfile
+    working_dir: /usr/src/app
+    volumes:
+      - ./mytv_frontend:/usr/src/app
+    environment:
+      HOST: 0.0.0.0
+      PORT: 3000
+      BROWSER: none
+    ports:
+      - "3000:3000"
+    command: ["npm", "start"]
+```
+
+
 ## Features
 
 - **Lightweight**: No heavy UI frameworks - uses only vanilla CSS and React
