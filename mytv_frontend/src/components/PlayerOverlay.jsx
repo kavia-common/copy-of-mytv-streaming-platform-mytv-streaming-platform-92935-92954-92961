@@ -372,10 +372,10 @@ export default function PlayerOverlay({ src, type, onClose, title = "Now Playing
           togglePlay();
           break;
         case "left":
-          seekBy(-10);
+          seekBy(-5);
           break;
         case "right":
-          seekBy(10);
+          seekBy(5);
           break;
         case "back":
           e.preventDefault?.();
@@ -456,7 +456,7 @@ export default function PlayerOverlay({ src, type, onClose, title = "Now Playing
           type="button"
           aria-label="Close player"
           onClick={() => onClose?.()}
-          className="inline-flex items-center gap-2 rounded-md bg-white/10 hover:bg-white/20 px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-amber-400"
+          className="inline-flex items-center gap-2 rounded-md bg-white/10 hover:bg-white/20 px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-white/30"
         >
           <span aria-hidden="true">←</span>
           <span className="hidden sm:inline">Back</span>
@@ -479,35 +479,38 @@ export default function PlayerOverlay({ src, type, onClose, title = "Now Playing
         />
       </div>
 
-      {/* Center controls group */}
+      {/* Center controls group - three buttons (back 5s, play/pause, forward 5s) */}
       <div
-        className={`absolute inset-0 flex items-center justify-center transition-opacity ${controlsVisible ? "opacity-100" : "opacity-0"} pointer-events-none`}
+        className={`absolute inset-x-0 bottom-1/3 flex items-center justify-center transition-opacity motion-opacity ${controlsVisible ? "opacity-100" : "opacity-0"} pointer-events-none`}
         aria-hidden={!controlsVisible}
       >
-        <div className="pointer-events-auto flex items-center gap-4 md:gap-6 bg-black/30 ring-1 ring-white/10 rounded-full px-3 py-2 backdrop-blur-sm">
+        <div className="pointer-events-auto flex items-center gap-5 md:gap-8 bg-black/30 ring-1 ring-white/10 rounded-full px-3.5 py-2.5 md:px-4 md:py-3 backdrop-blur-sm">
           <button
             type="button"
-            aria-label="Rewind 10 seconds"
-            className="h-12 w-12 md:h-14 md:w-14 rounded-full bg-white/10 hover:bg-white/20 focus:outline-none focus:ring-2 focus:ring-amber-400 text-white text-xl md:text-2xl"
-            onClick={() => { seekBy(-10); showControls(); }}
+            aria-label="Back 5 seconds"
+            className="h-12 w-12 md:h-14 md:w-14 rounded-full bg-white/10 hover:bg-white/20 focus:outline-none focus:ring-2 focus:ring-white/30 text-white text-xl md:text-2xl flex items-center justify-center"
+            onClick={() => { seekBy(-5); showControls(); }}
           >
-            ⏪
+            {/* Icon: rotate forward icon to indicate back 5s with small '5' */}
+            <span className="sr-only">Back 5 seconds</span>
+            <span aria-hidden="true">↺</span>
           </button>
           <button
             type="button"
             aria-label={isPlaying ? "Pause" : "Play"}
-            className="h-12 w-12 md:h-14 md:w-14 rounded-full bg-ocean-primary hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-400 text-white text-xl md:text-2xl"
+            className="h-12 w-12 md:h-16 md:w-16 rounded-full bg-white/15 hover:bg-white/25 focus:outline-none focus:ring-2 focus:ring-white/30 text-white text-xl md:text-2xl flex items-center justify-center"
             onClick={() => { togglePlay(); showControls(); }}
           >
-            {isPlaying ? "⏸" : "▶"}
+            <span aria-hidden="true">{isPlaying ? "⏸" : "▶"}</span>
           </button>
           <button
             type="button"
-            aria-label="Forward 10 seconds"
-            className="h-12 w-12 md:h-14 md:w-14 rounded-full bg-white/10 hover:bg-white/20 focus:outline-none focus:ring-2 focus:ring-amber-400 text-white text-xl md:text-2xl"
-            onClick={() => { seekBy(10); showControls(); }}
+            aria-label="Forward 5 seconds"
+            className="h-12 w-12 md:h-14 md:w-14 rounded-full bg-white/10 hover:bg-white/20 focus:outline-none focus:ring-2 focus:ring-white/30 text-white text-xl md:text-2xl flex items-center justify-center"
+            onClick={() => { seekBy(5); showControls(); }}
           >
-            ⏩
+            <span className="sr-only">Forward 5 seconds</span>
+            <span aria-hidden="true">↻</span>
           </button>
         </div>
       </div>
@@ -545,7 +548,7 @@ export default function PlayerOverlay({ src, type, onClose, title = "Now Playing
       {/* Minimal help hint */}
       {!errorText && (
         <div className={`absolute bottom-3 right-4 text-xs text-white/80 bg-white/10 rounded px-2 py-1 ring-1 ring-white/10 transition-opacity ${controlsVisible ? "opacity-100" : "opacity-0"}`}>
-          Enter: Play/Pause • Left/Right: -10s/+10s • Back: Exit
+          Enter: Play/Pause • Left/Right: -5s/+5s • Back: Exit
         </div>
       )}
 
