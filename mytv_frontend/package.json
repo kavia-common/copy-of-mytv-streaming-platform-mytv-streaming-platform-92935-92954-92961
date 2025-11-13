@@ -12,6 +12,7 @@
   "scripts": {
     "start": "react-scripts start",
     "start:dev": "HOST=${HOST:-0.0.0.0} PORT=${PORT:-3000} BROWSER=${BROWSER:-none} react-scripts start",
+    "start:container": "./start.sh",
     "build": "react-scripts build",
     "test": "CI=true react-scripts test --watchAll=false",
     "eject": "react-scripts eject"
