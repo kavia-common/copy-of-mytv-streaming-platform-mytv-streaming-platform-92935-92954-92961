@@ -17,6 +17,18 @@ This project provides a minimal React template with a clean, modern UI and minim
 
 ### Example docker-compose service (already configured in the repo)
 
+Important: Run docker-compose from the repository root:
+- Base directory: /home/kavia/workspace/code-generation
+- Project workspace: copy-of-mytv-streaming-platform-mytv-streaming-platform-92935-92954-92961
+
+From the base directory:
+```bash
+cd /home/kavia/workspace/code-generation/copy-of-mytv-streaming-platform-mytv-streaming-platform-92935-92954-92961
+docker compose up --build mytv_frontend
+```
+
+Do not use older paths like `/home/kavia/workspace/code-generation/mytv-streaming-platform-92935-92954/...` as they no longer exist in this workspace.
+
 ```yaml
 services:
   mytv_frontend:

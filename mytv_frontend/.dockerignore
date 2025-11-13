@@ -1,0 +1,28 @@
+# Dependencies
+node_modules
+npm-debug.log
+yarn-error.log
+
+# Build output
+build
+dist
+
+# Local env
+.env
+.env.local
+.env.development
+.env.production
+.env.test
+
+# Editor/OS
+.DS_Store
+.vscode
+.idea
+
+# Git
+.git
+.gitignore
+
+# Archives
+*.tar
+*.tgz

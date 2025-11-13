@@ -11,8 +11,9 @@
   },
   "scripts": {
     "start": "react-scripts start",
+    "start:dev": "HOST=${HOST:-0.0.0.0} PORT=${PORT:-3000} BROWSER=${BROWSER:-none} react-scripts start",
     "build": "react-scripts build",
-    "test": "react-scripts test",
+    "test": "CI=true react-scripts test --watchAll=false",
     "eject": "react-scripts eject"
   },
   "eslintConfig": {
